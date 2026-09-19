@@ -1,0 +1,9 @@
+.menu_item_title {
+  margin: 0;
+}
+
+.products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
+  gap: 32px 24px;
+}
