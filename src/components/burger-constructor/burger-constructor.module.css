@@ -5,3 +5,55 @@
   padding-bottom: 20px;
   color: var(--text-primary-color);
 }
+
+.burger_structure {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.burger_items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.burger_item {
+  /* display: grid;
+  grid-template-columns: 32px minmax(0, 1fr); */
+
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+    
+  align-items: center;
+  margin-right: 6px;
+}
+
+.burger_item_locked {
+  margin-right: 16px;
+}
+
+.burger_item_locked::before {
+  content: '';
+}
+
+.burger_price {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: end;
+  align-items: center;
+  gap: 40px;
+}
+
+.burger_price_value {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: start;
+  align-items: center;
+  gap: 8px;
+}
