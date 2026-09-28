@@ -18,6 +18,11 @@ export const BurgerConstructor = ({
 }: TBurgerConstructorProps): React.JSX.Element => {
   console.log(ingredients);
 
+  // ранний возврат, если нет ингредиентов для конструктора
+  if (ingredients.length === 0) {
+    return <section className={styles.burger_constructor} />;
+  }
+
   return (
     <section className={styles.burger_constructor}>
       <div className={`${styles.burger_structure} mb-10 ml-4`}>
