@@ -1,5 +1,5 @@
 import { Preloader } from '@krgaa/react-developer-burger-ui-components';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { AppHeader } from '@components/app-header/app-header';
 import { BurgerConstructor } from '@components/burger-constructor/burger-constructor';
@@ -30,6 +30,7 @@ const MODAL_LABELS = {
 
 export const App = (): React.JSX.Element => {
   const [modal, setModal] = useState<TModalState>(null);
+  const closeModal = useCallback((): void => setModal(null), []);
   const [requestState, setRequestState] = useState<TRequestState>({
     status: 'loading',
   });
@@ -85,7 +86,7 @@ export const App = (): React.JSX.Element => {
         </main>
       )}
       {modal && (
-        <Modal {...MODAL_LABELS[modal.type]} onClose={(): void => setModal(null)}>
+        <Modal {...MODAL_LABELS[modal.type]} onClose={closeModal}>
           {modal.type === 'ingredient' ? (
             <IngredientDetails ingredient={modal.ingredient} />
           ) : (

@@ -1,16 +1,21 @@
+.modal_container {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .modal {
+  position: relative;
+  z-index: 1;
   width: min(720px, calc(100vw - 32px));
   max-height: calc(100dvh - 32px);
-  padding: 0;
   overflow: auto;
   color: #f2f2f3;
   background: #1c1c21;
-  border: none;
   border-radius: 40px;
-}
-
-.modal::backdrop {
-  background: rgb(0 0 0 / 60%);
 }
 
 .header {
