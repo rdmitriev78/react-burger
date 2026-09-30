@@ -14,10 +14,12 @@ const ingredientSections = [
 
 type TBurgerIngredientsProps = {
   ingredients: TIngredient[];
+  onIngredientClick: (ingredient: TIngredient) => void;
 };
 
 export const BurgerIngredients = ({
   ingredients,
+  onIngredientClick,
 }: TBurgerIngredientsProps): React.JSX.Element => {
   console.log(ingredients);
 
@@ -62,6 +64,7 @@ export const BurgerIngredients = ({
             key={type}
             title={title}
             ingredients={ingredients.filter((ingredient) => ingredient.type === type)}
+            onIngredientClick={onIngredientClick}
           />
         ))}
       </div>

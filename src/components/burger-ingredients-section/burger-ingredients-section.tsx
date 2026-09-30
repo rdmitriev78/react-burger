@@ -7,18 +7,25 @@ import styles from './burger-ingredients-section.module.css';
 type TBurgerIngredientsSectionProps = {
   title: string;
   ingredients: TIngredient[];
+  onIngredientClick: (ingredient: TIngredient) => void;
 };
 
 export const BurgerIngredientsSection = ({
   title,
   ingredients,
+  onIngredientClick,
 }: TBurgerIngredientsSectionProps): React.JSX.Element => (
   <section>
     <h2 className={styles.menu_item_title}>{title}</h2>
 
     <div className={`${styles.products} pt-6 pr-1 pb-10 pl-4`}>
       {ingredients.map((ingredient) => (
-        <BurgerIngredient key={ingredient._id} ingredient={ingredient} count={0} />
+        <BurgerIngredient
+          key={ingredient._id}
+          ingredient={ingredient}
+          count={0}
+          onClick={(): void => onIngredientClick(ingredient)}
+        />
       ))}
     </div>
   </section>

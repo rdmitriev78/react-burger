@@ -1,0 +1,33 @@
+.modal {
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  overflow: auto;
+  color: #f2f2f3;
+  background: #1c1c21;
+  border: none;
+  border-radius: 40px;
+}
+
+.modal::backdrop {
+  background: rgb(0 0 0 / 60%);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.close {
+  display: flex;
+  flex-shrink: 0;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  margin-left: auto;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}

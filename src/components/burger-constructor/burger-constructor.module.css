@@ -6,6 +6,10 @@
   color: var(--text-primary-color);
 }
 
+.text_placeholder {
+  text-align: center;
+}
+
 .burger_structure {
   display: flex;
   flex-direction: column;
@@ -25,11 +29,9 @@
 .burger_item {
   /* display: grid;
   grid-template-columns: 32px minmax(0, 1fr); */
-
   display: flex;
   flex-flow: row nowrap;
   justify-content: space-between;
-    
   align-items: center;
   margin-right: 6px;
 }
@@ -56,4 +58,15 @@
   justify-content: start;
   align-items: center;
   gap: 8px;
+}
+
+.visually_hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  border: 0;
+  clip-path: inset(50%);
 }

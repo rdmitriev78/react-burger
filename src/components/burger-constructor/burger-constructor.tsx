@@ -11,16 +11,26 @@ import styles from './burger-constructor.module.css';
 
 type TBurgerConstructorProps = {
   ingredients: TIngredient[];
+  onOrderClick: () => void;
 };
 
 export const BurgerConstructor = ({
   ingredients,
+  onOrderClick,
 }: TBurgerConstructorProps): React.JSX.Element => {
   console.log(ingredients);
 
   // ранний возврат, если нет ингредиентов для конструктора
   if (ingredients.length === 0) {
-    return <section className={styles.burger_constructor} />;
+    return (
+      <section className={styles.burger_constructor}>
+        <p
+          className={`${styles.text_placeholder} text text_type_main-medium text_color_inactive mt-20 ml-4`}
+        >
+          Добавьте ингредиенты
+        </p>
+      </section>
+    );
   }
 
   return (
@@ -69,17 +79,13 @@ export const BurgerConstructor = ({
       <div className={`${styles.burger_price} mr-4 ml-4`}>
         <div className={styles.burger_price_value}>
           <div className="text text_type_digits-medium">610</div>
-          <CurrencyIcon type="primary" />
+          <span className={styles.visually_hidden}> кредитов</span>
+          <span aria-hidden="true">
+            <CurrencyIcon type="primary" />
+          </span>
         </div>
 
-        <Button
-          onClick={() => {
-            console.log('Оформить заказ');
-          }}
-          size="large"
-          type="primary"
-          htmlType={'button'}
-        >
+        <Button onClick={onOrderClick} size="large" type="primary" htmlType={'button'}>
           Оформить заказ
         </Button>
       </div>
