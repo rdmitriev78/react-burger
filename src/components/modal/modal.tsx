@@ -1,5 +1,5 @@
 import { CloseIcon } from '@krgaa/react-developer-burger-ui-components';
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 import { ModalOverlay } from '@components/modal-overlay/modal-overlay';
@@ -40,7 +40,7 @@ export const Modal = ({
   };
 
   // Блокируем фон и управляем фокусом только при открытии и закрытии модалки.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const previousFocus = document.activeElement;
     const previousOverflow = document.body.style.overflow;
     const appRoot = document.getElementById('root');
