@@ -1,5 +1,4 @@
-import { Preloader } from '@krgaa/react-developer-burger-ui-components';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { AppHeader } from '@components/app-header/app-header';
 import { BurgerConstructor } from '@components/burger-constructor/burger-constructor';
@@ -7,6 +6,8 @@ import { BurgerIngredients } from '@components/burger-ingredients/burger-ingredi
 import { IngredientDetails } from '@components/ingredient-details/ingredient-details';
 import { Modal, type ModalTitleOrAriaLabel } from '@components/modal/modal';
 import { OrderDetails } from '@components/order-details/order-details';
+import { RequestError } from '@components/request-error/request-error';
+import { RequestLoading } from '@components/request-loading/request-loading';
 import { DEFAULT_INGREDIENT_ERROR, getIngredients } from '@utils/ingredient-api';
 
 import type { TIngredient } from '@utils/types';
@@ -35,33 +36,42 @@ export const App = (): React.JSX.Element => {
     status: 'loading',
   });
 
-  useEffect(() => {
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const loadIngredients = useCallback(async (): Promise<void> => {
+    abortControllerRef.current?.abort();
     const controller = new AbortController();
+    abortControllerRef.current = controller;
+    setRequestState({ status: 'loading' });
 
-    const loadIngredients = async (): Promise<void> => {
-      try {
-        const ingredients = await getIngredients(controller.signal);
-        setRequestState({ status: 'success', ingredients });
-      } catch (error: unknown) {
-        // если запрос отменён
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        console.error(error);
-        setRequestState({
-          status: 'error',
-          message: error instanceof Error ? error.message : DEFAULT_INGREDIENT_ERROR,
-        });
+    try {
+      const ingredients = await getIngredients(controller.signal);
+      if (controller.signal.aborted) {
+        return;
       }
-    };
 
+      setRequestState({ status: 'success', ingredients });
+    } catch (error: unknown) {
+      // если запрос отменён
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      console.error(error);
+      setRequestState({
+        status: 'error',
+        message: error instanceof Error ? error.message : DEFAULT_INGREDIENT_ERROR,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
     void loadIngredients();
 
     return (): void => {
-      controller.abort();
+      abortControllerRef.current?.abort();
     };
-  }, []);
+  }, [loadIngredients]);
 
   return (
     <div className={styles.app}>
@@ -69,8 +79,19 @@ export const App = (): React.JSX.Element => {
       <h1 className={`${styles.title} text text_type_main-large mt-10 mb-5 pl-5`}>
         Соберите бургер
       </h1>
-      {requestState.status === 'loading' && <Preloader />}
-      {requestState.status === 'error' && <p>{requestState.message}</p>}
+      {requestState.status === 'loading' && (
+        <div className="mt-20">
+          <RequestLoading message="Загружаем ингредиенты…" />
+        </div>
+      )}
+      {requestState.status === 'error' && (
+        <div className="mt-20">
+          <RequestError
+            message={requestState.message}
+            onRetry={() => void loadIngredients()}
+          />
+        </div>
+      )}
       {requestState.status === 'success' && (
         <main className={`${styles.main} pl-5 pr-5`}>
           <BurgerIngredients
