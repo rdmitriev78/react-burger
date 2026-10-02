@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { AppHeader } from '@components/app-header/app-header';
 import { BurgerConstructor } from '@components/burger-constructor/burger-constructor';
@@ -8,16 +8,11 @@ import { Modal, type ModalTitleOrAriaLabel } from '@components/modal/modal';
 import { OrderDetails } from '@components/order-details/order-details';
 import { RequestError } from '@components/request-error/request-error';
 import { RequestLoading } from '@components/request-loading/request-loading';
-import { DEFAULT_INGREDIENT_ERROR, getIngredients } from '@utils/ingredient-api';
+import { useIngredients } from '@hooks/use-ingredients';
 
 import type { TIngredient } from '@utils/types';
 
 import styles from './app.module.css';
-
-type TRequestState =
-  | { status: 'loading' }
-  | { status: 'success'; ingredients: TIngredient[] }
-  | { status: 'error'; message: string };
 
 type TModalState =
   | { type: 'ingredient'; ingredient: TIngredient }
@@ -32,46 +27,7 @@ const MODAL_LABELS = {
 export const App = (): React.JSX.Element => {
   const [modal, setModal] = useState<TModalState>(null);
   const closeModal = useCallback((): void => setModal(null), []);
-  const [requestState, setRequestState] = useState<TRequestState>({
-    status: 'loading',
-  });
-
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  const loadIngredients = useCallback(async (): Promise<void> => {
-    abortControllerRef.current?.abort();
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    setRequestState({ status: 'loading' });
-
-    try {
-      const ingredients = await getIngredients(controller.signal);
-      if (controller.signal.aborted) {
-        return;
-      }
-
-      setRequestState({ status: 'success', ingredients });
-    } catch (error: unknown) {
-      // если запрос отменён
-      if (controller.signal.aborted) {
-        return;
-      }
-
-      console.error(error);
-      setRequestState({
-        status: 'error',
-        message: error instanceof Error ? error.message : DEFAULT_INGREDIENT_ERROR,
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadIngredients();
-
-    return (): void => {
-      abortControllerRef.current?.abort();
-    };
-  }, [loadIngredients]);
+  const { requestState, retry } = useIngredients();
 
   return (
     <div className={styles.app}>
@@ -86,10 +42,7 @@ export const App = (): React.JSX.Element => {
       )}
       {requestState.status === 'error' && (
         <div className="mt-20">
-          <RequestError
-            message={requestState.message}
-            onRetry={() => void loadIngredients()}
-          />
+          <RequestError message={requestState.message} onRetry={retry} />
         </div>
       )}
       {requestState.status === 'success' && (
