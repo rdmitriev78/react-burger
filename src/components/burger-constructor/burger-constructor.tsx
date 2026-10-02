@@ -4,6 +4,7 @@ import {
   CurrencyIcon,
   DragIcon,
 } from '@krgaa/react-developer-burger-ui-components';
+import { memo } from 'react';
 
 import type { TIngredient } from '@utils/types';
 
@@ -14,11 +15,11 @@ type TBurgerConstructorProps = {
   onOrderClick: () => void;
 };
 
-export const BurgerConstructor = ({
+export const BurgerConstructor = memo(function BurgerConstructor({
   ingredients,
   onOrderClick,
-}: TBurgerConstructorProps): React.JSX.Element => {
-  console.log(ingredients);
+}: TBurgerConstructorProps): React.JSX.Element {
+  console.log('BurgerConstructor', ingredients);
 
   // ранний возврат, если нет ингредиентов для конструктора
   if (ingredients.length === 0) {
@@ -91,4 +92,4 @@ export const BurgerConstructor = ({
       </div>
     </section>
   );
-};
+});

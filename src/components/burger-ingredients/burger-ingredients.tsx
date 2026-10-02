@@ -1,4 +1,5 @@
 import { Tab } from '@krgaa/react-developer-burger-ui-components';
+import { memo } from 'react';
 
 import { BurgerIngredientsSection } from '../burger-ingredients-section/burger-ingredients-section';
 
@@ -17,11 +18,11 @@ type TBurgerIngredientsProps = {
   onIngredientClick: (ingredient: TIngredient) => void;
 };
 
-export const BurgerIngredients = ({
+export const BurgerIngredients = memo(function BurgerIngredients({
   ingredients,
   onIngredientClick,
-}: TBurgerIngredientsProps): React.JSX.Element => {
-  console.log(ingredients);
+}: TBurgerIngredientsProps): React.JSX.Element {
+  console.log('BurgerIngredients', ingredients);
 
   return (
     <section className={styles.burger_ingredients}>
@@ -70,4 +71,4 @@ export const BurgerIngredients = ({
       </div>
     </section>
   );
-};
+});

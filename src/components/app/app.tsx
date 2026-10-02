@@ -27,6 +27,14 @@ const MODAL_LABELS = {
 export const App = (): React.JSX.Element => {
   const [modal, setModal] = useState<TModalState>(null);
   const closeModal = useCallback((): void => setModal(null), []);
+  const openIngredientModal = useCallback(
+    (ingredient: TIngredient): void => setModal({ type: 'ingredient', ingredient }),
+    []
+  );
+  const openOrderModal = useCallback(
+    (): void => setModal({ type: 'order', orderNumber: '034536' }),
+    []
+  );
   const { requestState, retry } = useIngredients();
 
   return (
@@ -49,13 +57,11 @@ export const App = (): React.JSX.Element => {
         <main className={`${styles.main} pl-5 pr-5`}>
           <BurgerIngredients
             ingredients={requestState.ingredients}
-            onIngredientClick={(ingredient): void =>
-              setModal({ type: 'ingredient', ingredient })
-            }
+            onIngredientClick={openIngredientModal}
           />
           <BurgerConstructor
             ingredients={requestState.ingredients}
-            onOrderClick={(): void => setModal({ type: 'order', orderNumber: '034536' })}
+            onOrderClick={openOrderModal}
           />
         </main>
       )}
