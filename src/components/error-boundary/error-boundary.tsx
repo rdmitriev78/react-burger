@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { ErrorView } from '@components/error-view/error-view';
+
 import type { ErrorInfo, ReactNode } from 'react';
 
 import styles from './error-boundary.module.css';
@@ -29,14 +31,14 @@ class ErrorBoundary extends React.Component<TErrorBoundaryProps, TErrorBoundaryS
   render(): ReactNode {
     if (this.state.hasError) {
       return (
-        <section className={styles.error} role="alert">
-          <h1 className="text text_type_main-large mb-5">Что-то пошло не так :(</h1>
-          <p
-            className={`${styles.message} text text_type_main-default text_color_inactive`}
-          >
-            В приложении произошла ошибка. Пожалуйста, перезагрузите страницу.
-          </p>
-        </section>
+        <main className={styles.error}>
+          <ErrorView
+            title="Что-то пошло не так :("
+            message="В приложении произошла ошибка. Пожалуйста, перезагрузите страницу."
+            buttonText="Перезагрузить страницу"
+            onButtonClick={(): void => window.location.reload()}
+          />
+        </main>
       );
     }
 

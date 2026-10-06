@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { DEFAULT_INGREDIENT_ERROR, getIngredients } from '@utils/ingredient-api';
+import { getIngredients } from '@utils/ingredient-api';
 
 import type { TIngredient } from '@utils/types';
 
@@ -36,10 +36,10 @@ export const useIngredients = (): {
         return;
       }
 
-      console.error(error);
+      console.error('Не удалось загрузить ингредиенты', error);
       setRequestState({
         status: 'error',
-        message: error instanceof Error ? error.message : DEFAULT_INGREDIENT_ERROR,
+        message: 'Попробуйте повторить загрузку или зайдите немного позже.',
       });
     }
   }, []);
