@@ -6,23 +6,22 @@ import {
 } from '@krgaa/react-developer-burger-ui-components';
 import { memo } from 'react';
 
-import type { TIngredient } from '@utils/types';
+import type { TConstructorState } from '@utils/types';
 
 import styles from './burger-constructor.module.css';
 
 type TBurgerConstructorProps = {
-  ingredients: TIngredient[];
+  constructorState: TConstructorState | null;
   onOrderClick: () => void;
 };
 
 export const BurgerConstructor = memo(function BurgerConstructor({
-  ingredients,
+  constructorState,
   onOrderClick,
 }: TBurgerConstructorProps): React.JSX.Element {
-  console.log('BurgerConstructor', ingredients);
-
+  console.log('BurgerConstructor', constructorState?.ingredients);
   // ранний возврат, если нет ингредиентов для конструктора
-  if (ingredients.length === 0) {
+  if (!constructorState) {
     return (
       <section className={styles.burger_constructor}>
         <p
@@ -34,23 +33,25 @@ export const BurgerConstructor = memo(function BurgerConstructor({
     );
   }
 
+  const { bun, ingredients } = constructorState;
+
   return (
     <section className={styles.burger_constructor}>
       <div className={`${styles.burger_structure} mb-10 ml-4`}>
         <div className={`${styles.burger_item} ${styles.burger_item_locked}`}>
           <ConstructorElement
             isLocked={true}
-            price={ingredients[0].price}
-            text={`${ingredients[0].name} (верх)`}
-            thumbnail={ingredients[0].image_mobile}
+            price={bun.price}
+            text={`${bun.name} (верх)`}
+            thumbnail={bun.image_mobile}
             type={'top'}
           />
         </div>
 
         <div className={`${styles.burger_items} custom-scroll`}>
-          {ingredients.slice(1).map((ingredient) => {
+          {ingredients.map(({ id, ingredient }) => {
             return (
-              <div key={ingredient._id} className={styles.burger_item}>
+              <div key={id} className={styles.burger_item}>
                 <DragIcon type="primary" />
 
                 <ConstructorElement
@@ -69,9 +70,9 @@ export const BurgerConstructor = memo(function BurgerConstructor({
         <div className={`${styles.burger_item} ${styles.burger_item_locked}`}>
           <ConstructorElement
             isLocked={true}
-            price={ingredients[0].price}
-            text={`${ingredients[0].name} (низ)`}
-            thumbnail={ingredients[0].image_mobile}
+            price={bun.price}
+            text={`${bun.name} (низ)`}
+            thumbnail={bun.image_mobile}
             type={'bottom'}
           />
         </div>

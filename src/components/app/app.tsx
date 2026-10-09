@@ -9,8 +9,9 @@ import { Modal, type ModalTitleOrAriaLabel } from '@components/modal/modal';
 import { OrderDetails } from '@components/order-details/order-details';
 import { RequestLoading } from '@components/request-loading/request-loading';
 import { useIngredients } from '@hooks/use-ingredients';
+import { DEFAULT_CONSTRUCTOR } from '@utils/default-constructor';
 
-import type { TIngredient } from '@utils/types';
+import type { TConstructorState, TIngredient } from '@utils/types';
 
 import styles from './app.module.css';
 
@@ -25,6 +26,7 @@ const MODAL_LABELS = {
 } satisfies Record<NonNullable<TModalState>['type'], ModalTitleOrAriaLabel>;
 
 export const App = (): React.JSX.Element => {
+  const [constructor] = useState<TConstructorState | null>(DEFAULT_CONSTRUCTOR);
   const [modal, setModal] = useState<TModalState>(null);
   const closeModal = useCallback((): void => setModal(null), []);
   const openIngredientModal = useCallback(
@@ -67,7 +69,7 @@ export const App = (): React.JSX.Element => {
             onIngredientClick={openIngredientModal}
           />
           <BurgerConstructor
-            ingredients={requestState.ingredients}
+            constructorState={constructor}
             onOrderClick={openOrderModal}
           />
         </main>

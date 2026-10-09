@@ -23,7 +23,7 @@ export const BurgerIngredientsSection = ({
         <BurgerIngredient
           key={ingredient._id}
           ingredient={ingredient}
-          count={0}
+          count={0 /*TODO: Сделать подсчёт количества */}
           onClick={(): void => onIngredientClick(ingredient)}
         />
       ))}

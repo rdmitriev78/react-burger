@@ -33,7 +33,7 @@
   flex-flow: row nowrap;
   justify-content: space-between;
   align-items: center;
-  margin-right: 6px;
+  margin-right: 16px;
 }
 
 .burger_item_locked {
