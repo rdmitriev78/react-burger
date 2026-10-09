@@ -1,14 +1,16 @@
 import checkBg from '@images/check-bg.png';
 
+import type { TOrder } from '@utils/types';
+
 import styles from './order-details.module.css';
 
 type TOrderDetailsProps = {
-  orderNumber: string;
+  order: TOrder;
 };
 
-export const OrderDetails = ({ orderNumber }: TOrderDetailsProps): React.JSX.Element => (
+export const OrderDetails = ({ order }: TOrderDetailsProps): React.JSX.Element => (
   <div className={styles.details}>
-    <p className="text text_type_digits-large mb-8">{orderNumber}</p>
+    <p className="text text_type_digits-large mb-8">{order.orderNumber}</p>
     <p className="text text_type_main-medium mb-15">Идентификатор заказа</p>
     <img src={checkBg} alt="" className={styles.check_mark} />
     <p className="text text_type_main-default mb-2">Демонстрационный заказ</p>

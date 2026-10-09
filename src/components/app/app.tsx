@@ -12,13 +12,13 @@ import { useIngredientCounts } from '@hooks/use-ingredient-counts';
 import { useIngredients } from '@hooks/use-ingredients';
 import { mockConstructorState } from '@utils/mock-constructor';
 
-import type { TConstructorState, TIngredient } from '@utils/types';
+import type { TConstructorState, TIngredient, TOrder } from '@utils/types';
 
 import styles from './app.module.css';
 
 type TModalState =
   | { type: 'ingredient'; ingredient: TIngredient }
-  | { type: 'order'; orderNumber: string }
+  | { type: 'order'; order: TOrder }
   | null;
 
 const modalLabels = {
@@ -37,10 +37,12 @@ export const App = (): React.JSX.Element => {
     (ingredient: TIngredient): void => setModal({ type: 'ingredient', ingredient }),
     []
   );
-  const openOrderModal = useCallback(
-    (): void => setModal({ type: 'order', orderNumber: '034536' }),
-    []
-  );
+  const openOrderModal = useCallback((): void => {
+    if (!constructorState) return;
+
+    setModal({ type: 'order', order: { orderNumber: '034536' } });
+  }, [constructorState]);
+
   const { requestState, retry } = useIngredients();
 
   const ingredientRemove = useCallback((id: string): void => {
@@ -96,7 +98,7 @@ export const App = (): React.JSX.Element => {
           {modal.type === 'ingredient' ? (
             <IngredientDetails ingredient={modal.ingredient} />
           ) : (
-            <OrderDetails orderNumber={modal.orderNumber} />
+            <OrderDetails order={modal.order} />
           )}
         </Modal>
       )}

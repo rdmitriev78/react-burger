@@ -26,7 +26,7 @@ export const BurgerIngredientsSection = ({
           key={ingredient._id}
           ingredient={ingredient}
           count={ingredientCounts.get(ingredient._id) ?? 0}
-          onClick={(): void => onIngredientClick(ingredient)}
+          onClick={onIngredientClick}
         />
       ))}
     </div>

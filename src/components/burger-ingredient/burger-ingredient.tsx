@@ -8,7 +8,7 @@ import styles from './burger-ingredient.module.css';
 type TBurgerIngredientProps = {
   ingredient: TIngredient;
   count: number;
-  onClick: () => void;
+  onClick: (ingredient: TIngredient) => void;
 };
 
 export const BurgerIngredient = ({
@@ -25,7 +25,7 @@ export const BurgerIngredient = ({
       type="button"
       aria-labelledby={nameId}
       aria-describedby={descriptionId}
-      onClick={onClick}
+      onClick={() => onClick(ingredient)}
     >
       <img
         className={`${styles.product_image} pr-4 pl-4 mb-1`}

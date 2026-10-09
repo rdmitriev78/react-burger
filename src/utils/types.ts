@@ -33,3 +33,7 @@ export type TConstructorState = {
   bun: TBunIngredient;
   ingredients: TConstructorIngredient[];
 };
+
+export type TOrder = {
+  orderNumber: string;
+};
