@@ -24,6 +24,7 @@
   width: 100%;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .burger_item {
@@ -33,7 +34,7 @@
   flex-flow: row nowrap;
   justify-content: space-between;
   align-items: center;
-  margin-right: 16px;
+  margin-right: 6px;
 }
 
 .burger_item_locked {

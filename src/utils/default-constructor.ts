@@ -36,6 +36,23 @@ export const DEFAULT_CONSTRUCTOR: TConstructorState = {
     {
       id: '1',
       ingredient: {
+        _id: '692889f16bf770001bfeb4d4',
+        name: 'Соус традиционный галактический',
+        type: 'sauce',
+        proteins: 42,
+        fat: 24,
+        carbohydrates: 42,
+        calories: 99,
+        price: 15,
+        image: 'https://code.s3.yandex.net/react/code/sauce-03.png',
+        image_mobile: 'https://code.s3.yandex.net/react/code/sauce-03-mobile.png',
+        image_large: 'https://code.s3.yandex.net/react/code/sauce-03-large.png',
+        __v: 0,
+      },
+    },
+    {
+      id: '2',
+      ingredient: {
         _id: '692889f16bf770001bfeb4cf',
         name: 'Мясо бессмертных моллюсков Protostomia',
         type: 'main',
@@ -51,7 +68,24 @@ export const DEFAULT_CONSTRUCTOR: TConstructorState = {
       },
     },
     {
-      id: '2',
+      id: '3',
+      ingredient: {
+        _id: '692889f16bf770001bfeb4cf',
+        name: 'Мясо бессмертных моллюсков Protostomia',
+        type: 'main',
+        proteins: 433,
+        fat: 244,
+        carbohydrates: 33,
+        calories: 420,
+        price: 1337,
+        image: 'https://code.s3.yandex.net/react/code/meat-02.png',
+        image_mobile: 'https://code.s3.yandex.net/react/code/meat-02-mobile.png',
+        image_large: 'https://code.s3.yandex.net/react/code/meat-02-large.png',
+        __v: 0,
+      },
+    },
+    {
+      id: '4',
       ingredient: {
         _id: '692889f16bf770001bfeb4d7',
         name: 'Плоды Фалленианского дерева',
@@ -68,7 +102,24 @@ export const DEFAULT_CONSTRUCTOR: TConstructorState = {
       },
     },
     {
-      id: '3',
+      id: '5',
+      ingredient: {
+        _id: '692889f16bf770001bfeb4d7',
+        name: 'Плоды Фалленианского дерева',
+        type: 'main',
+        proteins: 20,
+        fat: 5,
+        carbohydrates: 55,
+        calories: 77,
+        price: 874,
+        image: 'https://code.s3.yandex.net/react/code/sp_1.png',
+        image_mobile: 'https://code.s3.yandex.net/react/code/sp_1-mobile.png',
+        image_large: 'https://code.s3.yandex.net/react/code/sp_1-large.png',
+        __v: 0,
+      },
+    },
+    {
+      id: '6',
       ingredient: {
         _id: '692889f16bf770001bfeb4d6',
         name: 'Хрустящие минеральные кольца',
@@ -85,7 +136,7 @@ export const DEFAULT_CONSTRUCTOR: TConstructorState = {
       },
     },
     {
-      id: '4',
+      id: '7',
       ingredient: {
         _id: '692889f16bf770001bfeb4d6',
         name: 'Хрустящие минеральные кольца',

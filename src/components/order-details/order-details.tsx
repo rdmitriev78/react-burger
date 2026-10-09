@@ -1,4 +1,4 @@
-import checkBg from '@assets/check-bg.png';
+import checkBg from '@images/check-bg.png';
 
 import styles from './order-details.module.css';
 
