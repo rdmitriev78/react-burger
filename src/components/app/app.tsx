@@ -8,8 +8,9 @@ import { IngredientDetails } from '@components/ingredient-details/ingredient-det
 import { Modal, type ModalTitleOrAriaLabel } from '@components/modal/modal';
 import { OrderDetails } from '@components/order-details/order-details';
 import { RequestLoading } from '@components/request-loading/request-loading';
+import { useIngredientCounts } from '@hooks/use-ingredient-counts';
 import { useIngredients } from '@hooks/use-ingredients';
-import { mockConstructorState } from '@utils/default-constructor';
+import { mockConstructorState } from '@utils/mock-constructor';
 
 import type { TConstructorState, TIngredient } from '@utils/types';
 
@@ -26,7 +27,10 @@ const modalLabels = {
 } satisfies Record<NonNullable<TModalState>['type'], ModalTitleOrAriaLabel>;
 
 export const App = (): React.JSX.Element => {
-  const [constructor] = useState<TConstructorState | null>(mockConstructorState);
+  const [constructorState, setConstructorState] = useState<TConstructorState | null>(
+    mockConstructorState
+  );
+  const ingredientCounts = useIngredientCounts(constructorState);
   const [modal, setModal] = useState<TModalState>(null);
   const closeModal = useCallback((): void => setModal(null), []);
   const openIngredientModal = useCallback(
@@ -38,6 +42,17 @@ export const App = (): React.JSX.Element => {
     []
   );
   const { requestState, retry } = useIngredients();
+
+  const ingredientRemove = useCallback((id: string): void => {
+    setConstructorState((prev) => {
+      if (!prev) return prev;
+
+      return {
+        ...prev,
+        ingredients: prev.ingredients.filter((ingredient) => ingredient.id !== id),
+      };
+    });
+  }, []);
 
   return (
     <div className={styles.app}>
@@ -66,11 +81,13 @@ export const App = (): React.JSX.Element => {
         <main className={`${styles.main} pl-5 pr-5`}>
           <BurgerIngredients
             ingredients={requestState.ingredients}
+            ingredientCounts={ingredientCounts}
             onIngredientClick={openIngredientModal}
           />
           <BurgerConstructor
-            constructorState={constructor}
+            constructorState={constructorState}
             onOrderClick={openOrderModal}
+            onIngredientRemove={ingredientRemove}
           />
         </main>
       )}

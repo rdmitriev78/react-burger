@@ -3,7 +3,7 @@ import { memo } from 'react';
 
 import { BurgerIngredientsSection } from '../burger-ingredients-section/burger-ingredients-section';
 
-import type { TIngredient } from '@utils/types';
+import type { TIngredient, TIngredientCounts } from '@utils/types';
 
 import styles from './burger-ingredients.module.css';
 
@@ -15,11 +15,13 @@ const ingredientSections = [
 
 type TBurgerIngredientsProps = {
   ingredients: TIngredient[];
+  ingredientCounts: TIngredientCounts;
   onIngredientClick: (ingredient: TIngredient) => void;
 };
 
 export const BurgerIngredients = memo(function BurgerIngredients({
   ingredients,
+  ingredientCounts,
   onIngredientClick,
 }: TBurgerIngredientsProps): React.JSX.Element {
   console.log('BurgerIngredients', ingredients);
@@ -65,6 +67,7 @@ export const BurgerIngredients = memo(function BurgerIngredients({
             key={type}
             title={title}
             ingredients={ingredients.filter((ingredient) => ingredient.type === type)}
+            ingredientCounts={ingredientCounts}
             onIngredientClick={onIngredientClick}
           />
         ))}

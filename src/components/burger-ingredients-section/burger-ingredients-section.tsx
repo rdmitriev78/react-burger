@@ -1,18 +1,20 @@
 import { BurgerIngredient } from '../burger-ingredient/burger-ingredient';
 
-import type { TIngredient } from '@utils/types';
+import type { TIngredient, TIngredientCounts } from '@utils/types';
 
 import styles from './burger-ingredients-section.module.css';
 
 type TBurgerIngredientsSectionProps = {
   title: string;
   ingredients: TIngredient[];
+  ingredientCounts: TIngredientCounts;
   onIngredientClick: (ingredient: TIngredient) => void;
 };
 
 export const BurgerIngredientsSection = ({
   title,
   ingredients,
+  ingredientCounts,
   onIngredientClick,
 }: TBurgerIngredientsSectionProps): React.JSX.Element => (
   <section>
@@ -23,7 +25,7 @@ export const BurgerIngredientsSection = ({
         <BurgerIngredient
           key={ingredient._id}
           ingredient={ingredient}
-          count={0 /*TODO: Сделать подсчёт количества */}
+          count={ingredientCounts.get(ingredient._id) ?? 0}
           onClick={(): void => onIngredientClick(ingredient)}
         />
       ))}

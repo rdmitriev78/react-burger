@@ -22,6 +22,8 @@ export type TFillingIngredient = TIngredientBase & {
 
 export type TIngredient = TBunIngredient | TFillingIngredient;
 
+export type TIngredientCounts = ReadonlyMap<string, number>;
+
 export type TConstructorIngredient = {
   id: string;
   ingredient: TFillingIngredient;

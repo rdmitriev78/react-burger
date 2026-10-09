@@ -1,5 +1,7 @@
 import type { TConstructorState } from './types';
 
+//TODO: Удалить mock и файл после окончания использования
+
 export const mockConstructorState: TConstructorState = {
   bun: {
     _id: '692889f16bf770001bfeb4cc',
@@ -17,7 +19,7 @@ export const mockConstructorState: TConstructorState = {
   },
   ingredients: [
     {
-      id: '0',
+      id: '10',
       ingredient: {
         _id: '692889f16bf770001bfeb4d4',
         name: 'Соус традиционный галактический',
@@ -34,24 +36,7 @@ export const mockConstructorState: TConstructorState = {
       },
     },
     {
-      id: '1',
-      ingredient: {
-        _id: '692889f16bf770001bfeb4d4',
-        name: 'Соус традиционный галактический',
-        type: 'sauce',
-        proteins: 42,
-        fat: 24,
-        carbohydrates: 42,
-        calories: 99,
-        price: 15,
-        image: 'https://code.s3.yandex.net/react/code/sauce-03.png',
-        image_mobile: 'https://code.s3.yandex.net/react/code/sauce-03-mobile.png',
-        image_large: 'https://code.s3.yandex.net/react/code/sauce-03-large.png',
-        __v: 0,
-      },
-    },
-    {
-      id: '2',
+      id: '20',
       ingredient: {
         _id: '692889f16bf770001bfeb4cf',
         name: 'Мясо бессмертных моллюсков Protostomia',
@@ -68,7 +53,7 @@ export const mockConstructorState: TConstructorState = {
       },
     },
     {
-      id: '3',
+      id: '30',
       ingredient: {
         _id: '692889f16bf770001bfeb4cf',
         name: 'Мясо бессмертных моллюсков Protostomia',
@@ -85,7 +70,7 @@ export const mockConstructorState: TConstructorState = {
       },
     },
     {
-      id: '4',
+      id: '40',
       ingredient: {
         _id: '692889f16bf770001bfeb4d7',
         name: 'Плоды Фалленианского дерева',
@@ -102,7 +87,7 @@ export const mockConstructorState: TConstructorState = {
       },
     },
     {
-      id: '5',
+      id: '50',
       ingredient: {
         _id: '692889f16bf770001bfeb4d7',
         name: 'Плоды Фалленианского дерева',
@@ -119,7 +104,41 @@ export const mockConstructorState: TConstructorState = {
       },
     },
     {
-      id: '6',
+      id: '51',
+      ingredient: {
+        _id: '692889f16bf770001bfeb4cf',
+        name: 'Мясо бессмертных моллюсков Protostomia',
+        type: 'main',
+        proteins: 433,
+        fat: 244,
+        carbohydrates: 33,
+        calories: 420,
+        price: 1337,
+        image: 'https://code.s3.yandex.net/react/code/meat-02.png',
+        image_mobile: 'https://code.s3.yandex.net/react/code/meat-02-mobile.png',
+        image_large: 'https://code.s3.yandex.net/react/code/meat-02-large.png',
+        __v: 0,
+      },
+    },
+    {
+      id: '52',
+      ingredient: {
+        _id: '692889f16bf770001bfeb4cf',
+        name: 'Мясо бессмертных моллюсков Protostomia',
+        type: 'main',
+        proteins: 433,
+        fat: 244,
+        carbohydrates: 33,
+        calories: 420,
+        price: 1337,
+        image: 'https://code.s3.yandex.net/react/code/meat-02.png',
+        image_mobile: 'https://code.s3.yandex.net/react/code/meat-02-mobile.png',
+        image_large: 'https://code.s3.yandex.net/react/code/meat-02-large.png',
+        __v: 0,
+      },
+    },
+    {
+      id: '60',
       ingredient: {
         _id: '692889f16bf770001bfeb4d6',
         name: 'Хрустящие минеральные кольца',
@@ -136,7 +155,58 @@ export const mockConstructorState: TConstructorState = {
       },
     },
     {
-      id: '7',
+      id: '70',
+      ingredient: {
+        _id: '692889f16bf770001bfeb4d6',
+        name: 'Хрустящие минеральные кольца',
+        type: 'main',
+        proteins: 808,
+        fat: 689,
+        carbohydrates: 609,
+        calories: 986,
+        price: 300,
+        image: 'https://code.s3.yandex.net/react/code/mineral_rings.png',
+        image_mobile: 'https://code.s3.yandex.net/react/code/mineral_rings-mobile.png',
+        image_large: 'https://code.s3.yandex.net/react/code/mineral_rings-large.png',
+        __v: 0,
+      },
+    },
+    {
+      id: '71',
+      ingredient: {
+        _id: '692889f16bf770001bfeb4cf',
+        name: 'Мясо бессмертных моллюсков Protostomia',
+        type: 'main',
+        proteins: 433,
+        fat: 244,
+        carbohydrates: 33,
+        calories: 420,
+        price: 1337,
+        image: 'https://code.s3.yandex.net/react/code/meat-02.png',
+        image_mobile: 'https://code.s3.yandex.net/react/code/meat-02-mobile.png',
+        image_large: 'https://code.s3.yandex.net/react/code/meat-02-large.png',
+        __v: 0,
+      },
+    },
+    {
+      id: '72',
+      ingredient: {
+        _id: '692889f16bf770001bfeb4cf',
+        name: 'Мясо бессмертных моллюсков Protostomia',
+        type: 'main',
+        proteins: 433,
+        fat: 244,
+        carbohydrates: 33,
+        calories: 420,
+        price: 1337,
+        image: 'https://code.s3.yandex.net/react/code/meat-02.png',
+        image_mobile: 'https://code.s3.yandex.net/react/code/meat-02-mobile.png',
+        image_large: 'https://code.s3.yandex.net/react/code/meat-02-large.png',
+        __v: 0,
+      },
+    },
+    {
+      id: '80',
       ingredient: {
         _id: '692889f16bf770001bfeb4d6',
         name: 'Хрустящие минеральные кольца',

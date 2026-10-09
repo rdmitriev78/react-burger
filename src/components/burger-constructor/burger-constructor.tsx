@@ -6,6 +6,8 @@ import {
 } from '@krgaa/react-developer-burger-ui-components';
 import { memo } from 'react';
 
+import { useOrderPrice } from '@hooks/use-order-price';
+
 import type { TConstructorState } from '@utils/types';
 
 import styles from './burger-constructor.module.css';
@@ -13,12 +15,16 @@ import styles from './burger-constructor.module.css';
 type TBurgerConstructorProps = {
   constructorState: TConstructorState | null;
   onOrderClick: () => void;
+  onIngredientRemove: (id: string) => void;
 };
 
 export const BurgerConstructor = memo(function BurgerConstructor({
   constructorState,
   onOrderClick,
+  onIngredientRemove,
 }: TBurgerConstructorProps): React.JSX.Element {
+  const orderPrice = useOrderPrice(constructorState);
+
   console.log('BurgerConstructor', constructorState?.ingredients);
   // ранний возврат, если нет ингредиентов для конструктора
   if (!constructorState) {
@@ -55,9 +61,7 @@ export const BurgerConstructor = memo(function BurgerConstructor({
                 <DragIcon type="primary" />
 
                 <ConstructorElement
-                  handleClose={(): void => {
-                    console.log(`handleClose to ${ingredient.name}`);
-                  }}
+                  handleClose={() => onIngredientRemove(id)}
                   price={ingredient.price}
                   text={ingredient.name}
                   thumbnail={ingredient.image_mobile}
@@ -80,7 +84,7 @@ export const BurgerConstructor = memo(function BurgerConstructor({
 
       <div className={`${styles.burger_price} mr-4 ml-4`}>
         <div className={styles.burger_price_value}>
-          <div className="text text_type_digits-medium">610</div>
+          <div className="text text_type_digits-medium">{orderPrice}</div>
           <span className={styles.visually_hidden}> кредитов</span>
           <span aria-hidden="true">
             <CurrencyIcon type="primary" />
