@@ -1,6 +1,7 @@
 import type { TIngredient } from './types';
 
-const API = 'https://new-stellarburgers.education-services.ru/api/ingredients';
+const ingredientsApiUrl =
+  'https://new-stellarburgers.education-services.ru/api/ingredients';
 
 type TIngredientsResponse = {
   success: boolean;
@@ -8,24 +9,24 @@ type TIngredientsResponse = {
 };
 
 export const getIngredients = async (signal: AbortSignal): Promise<TIngredient[]> => {
-  const GET_INGREDIENTS_ERROR = 'Ошибка при получении ингредиентов';
+  const getIngredientsErrorMessage = 'Ошибка при получении ингредиентов';
 
-  const response = await fetch(API, { signal });
+  const response = await fetch(ingredientsApiUrl, { signal });
 
   if (!response.ok) {
     const httpStatus = `${response.status} ${response.statusText}`.trim();
 
-    throw new Error(`${GET_INGREDIENTS_ERROR}. HTTP ${httpStatus}`);
+    throw new Error(`${getIngredientsErrorMessage}. HTTP ${httpStatus}`);
   }
 
   const { success, data } = (await response.json()) as TIngredientsResponse;
 
   if (!success) {
-    throw Error(`${GET_INGREDIENTS_ERROR}. Ошибка сервера!`);
+    throw Error(`${getIngredientsErrorMessage}. Ошибка сервера!`);
   }
 
   if (!Array.isArray(data) || data.length === 0) {
-    throw Error(`${GET_INGREDIENTS_ERROR}. Ингредиенты не получены!`);
+    throw Error(`${getIngredientsErrorMessage}. Ингредиенты не получены!`);
   }
 
   return data;

@@ -9,7 +9,7 @@ import { Modal, type ModalTitleOrAriaLabel } from '@components/modal/modal';
 import { OrderDetails } from '@components/order-details/order-details';
 import { RequestLoading } from '@components/request-loading/request-loading';
 import { useIngredients } from '@hooks/use-ingredients';
-import { DEFAULT_CONSTRUCTOR } from '@utils/default-constructor';
+import { mockConstructorState } from '@utils/default-constructor';
 
 import type { TConstructorState, TIngredient } from '@utils/types';
 
@@ -20,13 +20,13 @@ type TModalState =
   | { type: 'order'; orderNumber: string }
   | null;
 
-const MODAL_LABELS = {
+const modalLabels = {
   ingredient: { title: 'Детали ингредиента' },
   order: { ariaLabel: 'Заказ оформлен' },
 } satisfies Record<NonNullable<TModalState>['type'], ModalTitleOrAriaLabel>;
 
 export const App = (): React.JSX.Element => {
-  const [constructor] = useState<TConstructorState | null>(DEFAULT_CONSTRUCTOR);
+  const [constructor] = useState<TConstructorState | null>(mockConstructorState);
   const [modal, setModal] = useState<TModalState>(null);
   const closeModal = useCallback((): void => setModal(null), []);
   const openIngredientModal = useCallback(
@@ -75,7 +75,7 @@ export const App = (): React.JSX.Element => {
         </main>
       )}
       {modal && (
-        <Modal {...MODAL_LABELS[modal.type]} onClose={closeModal}>
+        <Modal {...modalLabels[modal.type]} onClose={closeModal}>
           {modal.type === 'ingredient' ? (
             <IngredientDetails ingredient={modal.ingredient} />
           ) : (

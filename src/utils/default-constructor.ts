@@ -1,6 +1,6 @@
 import type { TConstructorState } from './types';
 
-export const DEFAULT_CONSTRUCTOR: TConstructorState = {
+export const mockConstructorState: TConstructorState = {
   bun: {
     _id: '692889f16bf770001bfeb4cc',
     name: 'Краторная булка N-200i',
