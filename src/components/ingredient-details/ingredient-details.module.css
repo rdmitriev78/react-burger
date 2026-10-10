@@ -1,0 +1,23 @@
+.details {
+  margin: 0 60px 20px;
+  text-align: center;
+}
+
+.image {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 20px;
+}
+
+.nutrients {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  margin: 0 0 20px;
+}
+
+.value {
+  margin-right: 0;
+  margin-left: 0;
+}
