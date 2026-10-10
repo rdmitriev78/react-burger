@@ -30,7 +30,7 @@ export const BurgerIngredient = ({
       <img
         className={`${styles.product_image} pr-4 pl-4 mb-1`}
         src={ingredient.image_large}
-        alt=""
+        alt={ingredient.name}
       />
 
       <div className={`${styles.product_price} mb-1`} aria-hidden="true">
