@@ -13,7 +13,7 @@ import type { TConstructorState } from '@utils/types';
 import styles from './burger-constructor.module.css';
 
 type TBurgerConstructorProps = {
-  constructorState: TConstructorState | null;
+  constructorState: TConstructorState;
   onOrderClick: () => void;
   onIngredientRemove: (id: string) => void;
 };
@@ -26,18 +26,6 @@ export const BurgerConstructor = memo(function BurgerConstructor({
   const orderPrice = useOrderPrice(constructorState);
 
   console.log('BurgerConstructor', constructorState?.ingredients);
-  // ранний возврат, если нет ингредиентов для конструктора
-  if (!constructorState) {
-    return (
-      <section className={styles.burger_constructor}>
-        <p
-          className={`${styles.text_placeholder} text text_type_main-medium text_color_inactive mt-20 ml-4`}
-        >
-          Добавьте ингредиенты
-        </p>
-      </section>
-    );
-  }
 
   const { bun, ingredients } = constructorState;
 
@@ -45,18 +33,32 @@ export const BurgerConstructor = memo(function BurgerConstructor({
     <section className={styles.burger_constructor}>
       <div className={`${styles.burger_structure} mb-10 ml-4`}>
         <div className={`${styles.burger_item} ${styles.burger_item_locked}`}>
-          <ConstructorElement
-            isLocked={true}
-            price={bun.price}
-            text={`${bun.name} (верх)`}
-            thumbnail={bun.image_mobile}
-            type={'top'}
-          />
+          {!bun ? (
+            <div
+              className={`${styles.placeholder} ${styles.placeholder_top} text text_type_main-default`}
+            >
+              Перетащите сюда булку
+            </div>
+          ) : (
+            <ConstructorElement
+              isLocked={true}
+              price={bun.price}
+              text={`${bun.name} (верх)`}
+              thumbnail={bun.image_mobile}
+              type={'top'}
+            />
+          )}
         </div>
 
         <div className={`${styles.burger_items} custom-scroll`}>
-          {ingredients.map(({ id, ingredient }) => {
-            return (
+          {ingredients.length === 0 ? (
+            <div className={`${styles.burger_item} pl-8`}>
+              <div className={`${styles.placeholder} text text_type_main-default`}>
+                Перетащите сюда ингредиенты
+              </div>
+            </div>
+          ) : (
+            ingredients.map(({ id, ingredient }) => (
               <div key={id} className={styles.burger_item}>
                 <DragIcon type="primary" />
 
@@ -67,18 +69,26 @@ export const BurgerConstructor = memo(function BurgerConstructor({
                   thumbnail={ingredient.image_mobile}
                 />
               </div>
-            );
-          })}
+            ))
+          )}
         </div>
 
         <div className={`${styles.burger_item} ${styles.burger_item_locked}`}>
-          <ConstructorElement
-            isLocked={true}
-            price={bun.price}
-            text={`${bun.name} (низ)`}
-            thumbnail={bun.image_mobile}
-            type={'bottom'}
-          />
+          {!bun ? (
+            <div
+              className={`${styles.placeholder} ${styles.placeholder_bottom} text text_type_main-default`}
+            >
+              Перетащите сюда булку
+            </div>
+          ) : (
+            <ConstructorElement
+              isLocked={true}
+              price={bun.price}
+              text={`${bun.name} (низ)`}
+              thumbnail={bun.image_mobile}
+              type={'bottom'}
+            />
+          )}
         </div>
       </div>
 
@@ -91,7 +101,13 @@ export const BurgerConstructor = memo(function BurgerConstructor({
           </span>
         </div>
 
-        <Button onClick={onOrderClick} size="large" type="primary" htmlType={'button'}>
+        <Button
+          onClick={onOrderClick}
+          disabled={!bun || ingredients.length === 0}
+          size="large"
+          type="primary"
+          htmlType={'button'}
+        >
           Оформить заказ
         </Button>
       </div>

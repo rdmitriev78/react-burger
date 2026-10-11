@@ -10,7 +10,6 @@ import { OrderDetails } from '@components/order-details/order-details';
 import { RequestLoading } from '@components/request-loading/request-loading';
 import { useIngredientCounts } from '@hooks/use-ingredient-counts';
 import { useIngredients } from '@hooks/use-ingredients';
-import { mockConstructorState } from '@utils/mock-constructor';
 
 import type { TConstructorState, TIngredient, TOrder } from '@utils/types';
 
@@ -27,9 +26,10 @@ const modalLabels = {
 } satisfies Record<NonNullable<TModalState>['type'], ModalTitleOrAriaLabel>;
 
 export const App = (): React.JSX.Element => {
-  const [constructorState, setConstructorState] = useState<TConstructorState | null>(
-    mockConstructorState
-  );
+  const [constructorState, setConstructorState] = useState<TConstructorState>(() => ({
+    bun: null,
+    ingredients: [],
+  }));
   const ingredientCounts = useIngredientCounts(constructorState);
   const [modal, setModal] = useState<TModalState>(null);
   const closeModal = useCallback((): void => setModal(null), []);
@@ -38,7 +38,7 @@ export const App = (): React.JSX.Element => {
     []
   );
   const openOrderModal = useCallback((): void => {
-    if (!constructorState) return;
+    if (!constructorState.bun || constructorState.ingredients.length === 0) return;
 
     setModal({ type: 'order', order: { orderNumber: '034536' } });
   }, [constructorState]);
@@ -47,8 +47,6 @@ export const App = (): React.JSX.Element => {
 
   const ingredientRemove = useCallback((id: string): void => {
     setConstructorState((prev) => {
-      if (!prev) return prev;
-
       return {
         ...prev,
         ingredients: prev.ingredients.filter((ingredient) => ingredient.id !== id),

@@ -30,7 +30,7 @@ export type TConstructorIngredient = {
 };
 
 export type TConstructorState = {
-  bun: TBunIngredient;
+  bun: TBunIngredient | null;
   ingredients: TConstructorIngredient[];
 };
 
