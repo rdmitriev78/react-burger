@@ -13,3 +13,8 @@
   text-align: center;
   list-style-type: none;
 }
+
+.menu_items {
+  width: 100%;
+  overflow-y: auto;
+}
