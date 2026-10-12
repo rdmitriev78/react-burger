@@ -1,0 +1,82 @@
+import { createSelector, createSlice, nanoid } from '@reduxjs/toolkit';
+
+import type { TBunIngredient, TFillingIngredient } from '@app-types/ingredient';
+import type { PayloadAction } from '@reduxjs/toolkit';
+import type { RootState } from '@services/store';
+
+type TIngredientCounts = ReadonlyMap<string, number>;
+
+type TConstructorIngredient = {
+  id: string;
+  ingredient: TFillingIngredient;
+};
+
+type TConstructorState = {
+  bun: TBunIngredient | null;
+  ingredients: TConstructorIngredient[];
+};
+
+const createInitialState = (): TConstructorState => ({
+  bun: null,
+  ingredients: [],
+});
+
+const constructorSlice = createSlice({
+  name: 'burgerConstructor',
+  initialState: createInitialState,
+  reducers: {
+    setBun: (state, action: PayloadAction<TBunIngredient>): void => {
+      state.bun = action.payload;
+    },
+    addIngredient: {
+      prepare: (
+        ingredient: TFillingIngredient
+      ): { payload: TConstructorIngredient } => ({
+        payload: { id: nanoid(), ingredient },
+      }),
+      reducer: (state, action: PayloadAction<TConstructorIngredient>): void => {
+        state.ingredients.push(action.payload);
+      },
+    },
+    removeIngredient: (state, action: PayloadAction<string>): void => {
+      state.ingredients = state.ingredients.filter(({ id }) => id !== action.payload);
+    },
+    resetConstructor: (): TConstructorState => createInitialState(),
+  },
+});
+
+export const { setBun, addIngredient, removeIngredient, resetConstructor } =
+  constructorSlice.actions;
+export const constructorReducer = constructorSlice.reducer;
+
+export const selectConstructorState = (state: RootState): TConstructorState =>
+  state.burgerConstructor;
+
+export const selectOrderPrice = createSelector(
+  [selectConstructorState],
+  ({ bun, ingredients }): number =>
+    ingredients.reduce(
+      (total, { ingredient }) => total + ingredient.price,
+      bun ? bun.price * 2 : 0
+    )
+);
+
+export const selectIngredientCounts = createSelector(
+  [selectConstructorState],
+  ({ bun, ingredients }): TIngredientCounts => {
+    const counts = new Map<string, number>();
+
+    if (bun) counts.set(bun._id, 2);
+
+    for (const { ingredient } of ingredients) {
+      counts.set(ingredient._id, (counts.get(ingredient._id) ?? 0) + 1);
+    }
+
+    return counts;
+  }
+);
+
+export const selectCanOrder = (state: RootState): boolean => {
+  const { bun, ingredients } = selectConstructorState(state);
+  return bun !== null && ingredients.length > 0;
+};

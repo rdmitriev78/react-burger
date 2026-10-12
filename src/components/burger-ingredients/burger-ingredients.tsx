@@ -1,9 +1,13 @@
 import { Tab } from '@krgaa/react-developer-burger-ui-components';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+
+import { useAppDispatch, useAppSelector } from '@hooks/redux';
+import { selectIngredientsByType } from '@services/ingredients/ingredients-selectors';
+import { openIngredientModal } from '@services/modal/modal-slice';
 
 import { BurgerIngredientsSection } from '../burger-ingredients-section/burger-ingredients-section';
 
-import type { TIngredient, TIngredientCounts } from '@utils/types';
+import type { TIngredient } from '@app-types/ingredient';
 
 import styles from './burger-ingredients.module.css';
 
@@ -13,31 +17,15 @@ const ingredientSections = [
   { type: 'sauce', title: 'Соусы' },
 ] as const;
 
-type TBurgerIngredientsProps = {
-  ingredients: TIngredient[];
-  ingredientCounts: TIngredientCounts;
-  onIngredientClick: (ingredient: TIngredient) => void;
-};
-
-export const BurgerIngredients = memo(function BurgerIngredients({
-  ingredients,
-  ingredientCounts,
-  onIngredientClick,
-}: TBurgerIngredientsProps): React.JSX.Element {
-  const ingredientsByType = useMemo(() => {
-    const grouped: Record<TIngredient['type'], TIngredient[]> = {
-      bun: [],
-      main: [],
-      sauce: [],
-    };
-
-    for (const ingredient of ingredients) {
-      grouped[ingredient.type].push(ingredient);
-    }
-
-    return grouped;
-  }, [ingredients]);
-
+export const BurgerIngredients = memo(function BurgerIngredients(): React.JSX.Element {
+  const dispatch = useAppDispatch();
+  const ingredientsByType = useAppSelector(selectIngredientsByType);
+  const handleIngredientClick = useCallback(
+    (ingredient: TIngredient): void => {
+      dispatch(openIngredientModal(ingredient));
+    },
+    [dispatch]
+  );
   const [activeTab, setActiveTab] = useState<TIngredient['type']>('bun');
   const activeTabRef = useRef<TIngredient['type']>('bun');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -101,9 +89,9 @@ export const BurgerIngredients = memo(function BurgerIngredients({
     }
 
     return (): void => observer.disconnect();
-  }, [ingredients, updateActiveTab]);
+  }, [ingredientsByType, updateActiveTab]);
 
-  console.log('BurgerIngredients', ingredients);
+  console.log('BurgerIngredients');
 
   return (
     <section className={styles.burger_ingredients}>
@@ -137,8 +125,7 @@ export const BurgerIngredients = memo(function BurgerIngredients({
             <BurgerIngredientsSection
               title={title}
               ingredients={ingredientsByType[type]}
-              ingredientCounts={ingredientCounts}
-              onIngredientClick={onIngredientClick}
+              onIngredientClick={handleIngredientClick}
             />
           </section>
         ))}

@@ -1,4 +1,4 @@
-import type { TIngredient } from '@utils/types.ts';
+import type { TIngredient } from '@app-types/ingredient';
 
 export const ingredients: TIngredient[] = [
   {

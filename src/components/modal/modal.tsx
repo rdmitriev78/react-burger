@@ -4,19 +4,15 @@ import { createPortal } from 'react-dom';
 
 import { ModalOverlay } from '@components/modal-overlay/modal-overlay';
 
+import type { TModalTitleOrAriaLabel } from '@app-types/modal';
 import type { ReactNode } from 'react';
 
 import styles from './modal.module.css';
 
-// необходим title или ariaLabel (или оба) для работы скринридера
-export type ModalTitleOrAriaLabel =
-  | { title: string; ariaLabel?: string }
-  | { title?: string; ariaLabel: string };
-
 type TModalProps = {
   children: ReactNode;
   onClose: () => void;
-} & ModalTitleOrAriaLabel;
+} & TModalTitleOrAriaLabel;
 
 export const Modal = ({
   title,

@@ -1,7 +1,7 @@
 import { Counter, CurrencyIcon } from '@krgaa/react-developer-burger-ui-components';
-import { useId } from 'react';
+import { memo, useId } from 'react';
 
-import type { TIngredient } from '@utils/types';
+import type { TIngredient } from '@app-types/ingredient';
 
 import styles from './burger-ingredient.module.css';
 
@@ -11,11 +11,11 @@ type TBurgerIngredientProps = {
   onClick: (ingredient: TIngredient) => void;
 };
 
-export const BurgerIngredient = ({
+export const BurgerIngredient = memo(function BurgerIngredient({
   ingredient,
   count,
   onClick,
-}: TBurgerIngredientProps): React.JSX.Element => {
+}: TBurgerIngredientProps): React.JSX.Element {
   const nameId = useId();
   const descriptionId = useId();
 
@@ -54,4 +54,4 @@ export const BurgerIngredient = ({
       </span>
     </button>
   );
-};
+});

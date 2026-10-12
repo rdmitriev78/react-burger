@@ -1,6 +1,6 @@
 import checkBg from '@images/check-bg.png';
 
-import type { TOrder } from '@utils/types';
+import type { TOrder } from '@app-types/order';
 
 import styles from './order-details.module.css';
 

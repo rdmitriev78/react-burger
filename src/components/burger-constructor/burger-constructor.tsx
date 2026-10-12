@@ -4,30 +4,31 @@ import {
   CurrencyIcon,
   DragIcon,
 } from '@krgaa/react-developer-burger-ui-components';
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 
-import { useOrderPrice } from '@hooks/use-order-price';
-
-import type { TConstructorState } from '@utils/types';
+import { useAppDispatch, useAppSelector } from '@hooks/redux';
+import {
+  removeIngredient,
+  selectCanOrder,
+  selectConstructorState,
+  selectOrderPrice,
+} from '@services/constructor/constructor-slice';
+import { openOrderModal } from '@services/modal/modal-slice';
 
 import styles from './burger-constructor.module.css';
 
-type TBurgerConstructorProps = {
-  constructorState: TConstructorState;
-  onOrderClick: () => void;
-  onIngredientRemove: (id: string) => void;
-};
+export const BurgerConstructor = memo(function BurgerConstructor(): React.JSX.Element {
+  const dispatch = useAppDispatch();
+  const { bun, ingredients } = useAppSelector(selectConstructorState);
+  const orderPrice = useAppSelector(selectOrderPrice);
+  const canOrder = useAppSelector(selectCanOrder);
+  const handleOrderClick = useCallback((): void => {
+    if (!canOrder) return;
 
-export const BurgerConstructor = memo(function BurgerConstructor({
-  constructorState,
-  onOrderClick,
-  onIngredientRemove,
-}: TBurgerConstructorProps): React.JSX.Element {
-  const orderPrice = useOrderPrice(constructorState);
+    dispatch(openOrderModal({ orderNumber: '034536' }));
+  }, [canOrder, dispatch]);
 
-  console.log('BurgerConstructor', constructorState?.ingredients);
-
-  const { bun, ingredients } = constructorState;
+  console.log('BurgerConstructor', bun, ingredients);
 
   return (
     <section className={styles.burger_constructor}>
@@ -63,7 +64,7 @@ export const BurgerConstructor = memo(function BurgerConstructor({
                 <DragIcon type="primary" />
 
                 <ConstructorElement
-                  handleClose={() => onIngredientRemove(id)}
+                  handleClose={() => dispatch(removeIngredient(id))}
                   price={ingredient.price}
                   text={ingredient.name}
                   thumbnail={ingredient.image_mobile}
@@ -102,8 +103,8 @@ export const BurgerConstructor = memo(function BurgerConstructor({
         </div>
 
         <Button
-          onClick={onOrderClick}
-          disabled={!bun || ingredients.length === 0}
+          onClick={handleOrderClick}
+          disabled={!canOrder}
           size="large"
           type="primary"
           htmlType={'button'}

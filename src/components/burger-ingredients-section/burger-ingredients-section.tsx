@@ -1,24 +1,26 @@
 import { memo } from 'react';
 
+import { useAppSelector } from '@hooks/redux';
+import { selectIngredientCounts } from '@services/constructor/constructor-slice';
+
 import { BurgerIngredient } from '../burger-ingredient/burger-ingredient';
 
-import type { TIngredient, TIngredientCounts } from '@utils/types';
+import type { TIngredient } from '@app-types/ingredient';
 
 import styles from './burger-ingredients-section.module.css';
 
 type TBurgerIngredientsSectionProps = {
   title: string;
   ingredients: TIngredient[];
-  ingredientCounts: TIngredientCounts;
   onIngredientClick: (ingredient: TIngredient) => void;
 };
 
 export const BurgerIngredientsSection = memo(function BurgerIngredientsSection({
   title,
   ingredients,
-  ingredientCounts,
   onIngredientClick,
 }: TBurgerIngredientsSectionProps): React.JSX.Element {
+  const ingredientCounts = useAppSelector(selectIngredientCounts);
   console.log('BurgerIngredientsSection', ingredients);
 
   return (
