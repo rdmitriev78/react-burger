@@ -31,13 +31,6 @@
   border-radius: var(--bottom-constructor-item-border-radius);
 }
 
-.burger_structure {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-height: 0;
-}
-
 .burger_items {
   display: flex;
   flex-direction: column;

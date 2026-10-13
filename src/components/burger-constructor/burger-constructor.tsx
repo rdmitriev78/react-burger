@@ -2,13 +2,13 @@ import {
   Button,
   ConstructorElement,
   CurrencyIcon,
-  DragIcon,
 } from '@krgaa/react-developer-burger-ui-components';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useId, useState } from 'react';
 
+import { BurgerConstructorDropZone } from '@components/burger-constructor-drop-zone/burger-constructor-drop-zone';
+import { BurgerConstructorIngredient } from '@components/burger-constructor-ingredient/burger-constructor-ingredient';
 import { useAppDispatch, useAppSelector } from '@hooks/redux';
 import {
-  removeIngredient,
   selectCanOrder,
   selectConstructorState,
   selectOrderPrice,
@@ -22,6 +22,17 @@ export const BurgerConstructor = memo(function BurgerConstructor(): React.JSX.El
   const { bun, ingredients } = useAppSelector(selectConstructorState);
   const orderPrice = useAppSelector(selectOrderPrice);
   const canOrder = useAppSelector(selectCanOrder);
+  const moveInstructionsId = useId();
+  const [moveAnnouncement, setMoveAnnouncement] = useState('');
+  const handleMoveAnnouncement = useCallback((message: string): void => {
+    setMoveAnnouncement(message);
+  }, []);
+  const handleBunDragStartCapture = useCallback(
+    (event: React.DragEvent<HTMLDivElement>): void => {
+      event.preventDefault();
+    },
+    []
+  );
   const handleOrderClick = useCallback((): void => {
     if (!canOrder) return;
 
@@ -32,13 +43,29 @@ export const BurgerConstructor = memo(function BurgerConstructor(): React.JSX.El
 
   return (
     <section className={styles.burger_constructor}>
-      <div className={`${styles.burger_structure} mb-10 ml-4`}>
-        <div className={`${styles.burger_item} ${styles.burger_item_locked}`}>
+      <p id={moveInstructionsId} className={styles.visually_hidden}>
+        Нажмите Enter или пробел, чтобы начать перемещение. Стрелки вверх и вниз меняют
+        позицию ингредиента. Enter, пробел, Escape или Tab завершают перемещение,
+        сохраняя новый порядок.
+      </p>
+      <div
+        className={styles.visually_hidden}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {moveAnnouncement}
+      </div>
+      <BurgerConstructorDropZone>
+        <div
+          className={`${styles.burger_item} ${styles.burger_item_locked}`}
+          onDragStartCapture={handleBunDragStartCapture}
+        >
           {!bun ? (
             <div
               className={`${styles.placeholder} ${styles.placeholder_top} text text_type_main-default`}
             >
-              Перетащите сюда булку
+              Выберите булки
             </div>
           ) : (
             <ConstructorElement
@@ -55,26 +82,26 @@ export const BurgerConstructor = memo(function BurgerConstructor(): React.JSX.El
           {ingredients.length === 0 ? (
             <div className={`${styles.burger_item} pl-8`}>
               <div className={`${styles.placeholder} text text_type_main-default`}>
-                Перетащите сюда ингредиенты
+                Выберите начинку
               </div>
             </div>
           ) : (
             ingredients.map(({ id, ingredient }) => (
-              <div key={id} className={styles.burger_item}>
-                <DragIcon type="primary" />
-
-                <ConstructorElement
-                  handleClose={() => dispatch(removeIngredient(id))}
-                  price={ingredient.price}
-                  text={ingredient.name}
-                  thumbnail={ingredient.image_mobile}
-                />
-              </div>
+              <BurgerConstructorIngredient
+                key={id}
+                id={id}
+                ingredient={ingredient}
+                instructionsId={moveInstructionsId}
+                onAnnounce={handleMoveAnnouncement}
+              />
             ))
           )}
         </div>
 
-        <div className={`${styles.burger_item} ${styles.burger_item_locked}`}>
+        <div
+          className={`${styles.burger_item} ${styles.burger_item_locked}`}
+          onDragStartCapture={handleBunDragStartCapture}
+        >
           {!bun ? (
             <div
               className={`${styles.placeholder} ${styles.placeholder_bottom} text text_type_main-default`}
@@ -91,7 +118,7 @@ export const BurgerConstructor = memo(function BurgerConstructor(): React.JSX.El
             />
           )}
         </div>
-      </div>
+      </BurgerConstructorDropZone>
 
       <div className={`${styles.burger_price} mr-4 ml-4`}>
         <div className={styles.burger_price_value}>

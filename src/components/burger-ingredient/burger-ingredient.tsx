@@ -1,7 +1,11 @@
 import { Counter, CurrencyIcon } from '@krgaa/react-developer-burger-ui-components';
-import { memo, useId } from 'react';
+import { memo, useCallback, useId, useRef } from 'react';
+import { useDrag } from 'react-dnd';
+
+import { catalogIngredientDndType } from '@utils/dnd';
 
 import type { TIngredient } from '@app-types/ingredient';
+import type { TCatalogIngredientDragItem } from '@utils/dnd';
 
 import styles from './burger-ingredient.module.css';
 
@@ -18,19 +22,56 @@ export const BurgerIngredient = memo(function BurgerIngredient({
 }: TBurgerIngredientProps): React.JSX.Element {
   const nameId = useId();
   const descriptionId = useId();
+  const dragStartedRef = useRef(false);
+  const [{ isDragging }, drag] = useDrag<
+    TCatalogIngredientDragItem,
+    void,
+    { isDragging: boolean }
+  >(
+    () => ({
+      type: catalogIngredientDndType,
+      item: (): TCatalogIngredientDragItem => {
+        dragStartedRef.current = true;
+        return { ingredient };
+      },
+      collect: (monitor): { isDragging: boolean } => ({
+        isDragging: monitor.isDragging(),
+      }),
+    }),
+    [ingredient]
+  );
+  const dragRef = useCallback(
+    (node: HTMLButtonElement | null): void => {
+      drag(node);
+    },
+    [drag]
+  );
 
   return (
     <button
-      className={styles.product}
+      ref={dragRef}
+      className={`${styles.product} ${isDragging ? styles.product_dragging : ''}`}
       type="button"
       aria-labelledby={nameId}
       aria-describedby={descriptionId}
-      onClick={() => onClick(ingredient)}
+      onPointerDown={() => {
+        dragStartedRef.current = false;
+      }}
+      onClick={(event) => {
+        // Не пропускаем при клике, который завершает перетаскивание.
+        if (event.detail > 0 && dragStartedRef.current) {
+          dragStartedRef.current = false;
+          return;
+        }
+
+        onClick(ingredient);
+      }}
     >
       <img
         className={`${styles.product_image} pr-4 pl-4 mb-1`}
         src={ingredient.image_large}
         alt={ingredient.name}
+        draggable={false}
       />
 
       <div className={`${styles.product_price} mb-1`} aria-hidden="true">

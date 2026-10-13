@@ -1,5 +1,6 @@
 import { AppHeader } from '@components/app-header/app-header';
 import { AppModals } from '@components/app-modals/app-modals';
+import { BurgerConstructorDragLayer } from '@components/burger-constructor-drag-layer/burger-constructor-drag-layer';
 import { BurgerConstructor } from '@components/burger-constructor/burger-constructor';
 import { BurgerIngredients } from '@components/burger-ingredients/burger-ingredients';
 import { ErrorView } from '@components/error-view/error-view';
@@ -48,6 +49,7 @@ export const App = (): React.JSX.Element => {
         </main>
       )}
       <AppModals />
+      <BurgerConstructorDragLayer />
     </div>
   );
 };

@@ -9,21 +9,21 @@ type TIngredientsResponse = {
   data: TIngredient[];
 };
 
-const BURGER_API_BASE_URL = 'https://new-stellarburgers.education-services.ru/api/';
-// Temporary API simulation. Set to false to restore server requests.
-const USE_LOCAL_INGREDIENTS = true;
+const burgerApiBaseUrl = 'https://new-stellarburgers.education-services.ru/api/';
+// Симуляция API. true - локальные данные. false - сетевые данные.
+const useLocalIngredients = true;
 
 export const burgerApi = createApi({
   reducerPath: 'burgerApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: BURGER_API_BASE_URL,
+    baseUrl: burgerApiBaseUrl,
     fetchFn: async (input, init): Promise<Response> => {
       const request = input instanceof Request ? input : new Request(input, init);
 
       if (
-        USE_LOCAL_INGREDIENTS &&
+        useLocalIngredients &&
         request.method === 'GET' &&
-        request.url === `${BURGER_API_BASE_URL}ingredients`
+        request.url === `${burgerApiBaseUrl}ingredients`
       ) {
         request.signal.throwIfAborted();
         await new Promise<void>((resolve) => {

@@ -41,12 +41,31 @@ const constructorSlice = createSlice({
     removeIngredient: (state, action: PayloadAction<string>): void => {
       state.ingredients = state.ingredients.filter(({ id }) => id !== action.payload);
     },
+    moveIngredient: (
+      state,
+      action: PayloadAction<{ draggedId: string; targetId: string }>
+    ): void => {
+      const { draggedId, targetId } = action.payload;
+      if (draggedId === targetId) return;
+
+      const fromIndex = state.ingredients.findIndex(({ id }) => id === draggedId);
+      const toIndex = state.ingredients.findIndex(({ id }) => id === targetId);
+      if (fromIndex === -1 || toIndex === -1) return;
+
+      const [ingredient] = state.ingredients.splice(fromIndex, 1);
+      state.ingredients.splice(toIndex, 0, ingredient);
+    },
     resetConstructor: (): TConstructorState => createInitialState(),
   },
 });
 
-export const { setBun, addIngredient, removeIngredient, resetConstructor } =
-  constructorSlice.actions;
+export const {
+  setBun,
+  addIngredient,
+  removeIngredient,
+  moveIngredient,
+  resetConstructor,
+} = constructorSlice.actions;
 export const constructorReducer = constructorSlice.reducer;
 
 export const selectConstructorState = (state: RootState): TConstructorState =>
@@ -61,6 +80,20 @@ export const selectOrderPrice = createSelector(
     )
 );
 
+const areIngredientCountsEqual = (
+  previous: TIngredientCounts,
+  next: TIngredientCounts
+): boolean => {
+  if (previous === next) return true;
+  if (previous.size !== next.size) return false;
+
+  for (const [id, count] of previous) {
+    if (next.get(id) !== count) return false;
+  }
+
+  return true;
+};
+
 export const selectIngredientCounts = createSelector(
   [selectConstructorState],
   ({ bun, ingredients }): TIngredientCounts => {
@@ -73,6 +106,11 @@ export const selectIngredientCounts = createSelector(
     }
 
     return counts;
+  },
+  {
+    memoizeOptions: {
+      resultEqualityCheck: areIngredientCountsEqual,
+    },
   }
 );
 
