@@ -1,6 +1,5 @@
-import type { Config } from "stylelint";
-
-const config: Config = {
+/** @type {import('stylelint').Config} */
+const config = {
   extends: ['stylelint-config-standard'],
   ignoreFiles: ['**/fonts/', '**/images/'],
   plugins: ['stylelint-order'],
