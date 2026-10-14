@@ -89,6 +89,8 @@ export const useKeyboardIngredientMove = ({
       if (event.altKey || event.ctrlKey || event.metaKey) return;
 
       if (event.key === 'Enter' || event.key === ' ') {
+        // Подавляем нативный click после Enter/Space, иначе режим переключится дважды.
+        // Виртуальный click от вспомогательных технологий обрабатывает handleClick.
         event.preventDefault();
         if (!event.repeat) toggleKeyboardMove();
         return;

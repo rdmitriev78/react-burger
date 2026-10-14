@@ -92,6 +92,8 @@ export const BurgerConstructorIngredient = memo(function BurgerConstructorIngred
         const bounds = row.getBoundingClientRect();
         const middleY = (bounds.bottom - bounds.top) / 2;
         const pointerY = clientOffset.y - bounds.top;
+        // Переставляем только после пересечения середины строки в направлении движения,
+        // чтобы ингредиенты не менялись местами туда-сюда у границы строк.
         if (fromIndex < toIndex && pointerY < middleY) return;
         if (fromIndex > toIndex && pointerY > middleY) return;
 

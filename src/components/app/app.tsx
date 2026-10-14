@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 import { AppHeader } from '@components/app-header/app-header';
 import { AppModals } from '@components/app-modals/app-modals';
 import { BurgerConstructorDragLayer } from '@components/burger-constructor-drag-layer/burger-constructor-drag-layer';
@@ -5,11 +7,18 @@ import { BurgerConstructor } from '@components/burger-constructor/burger-constru
 import { BurgerIngredients } from '@components/burger-ingredients/burger-ingredients';
 import { ErrorView } from '@components/error-view/error-view';
 import { RequestLoading } from '@components/request-loading/request-loading';
+import { useOrderSubmission } from '@hooks/use-order-submission';
 import { useGetIngredientsQuery } from '@services/api/burger-api';
 
 import styles from './app.module.css';
 
 export const App = (): React.JSX.Element => {
+  const { stopWaiting } = useOrderSubmission();
+
+  // Отменяем ожидание только при размонтировании приложения, а не отдельных потребителей хука.
+  // OrderSubmission размонтируется при смене статуса, поэтому cleanup запроса не хранится в нём.
+  useEffect(() => (): void => stopWaiting(), [stopWaiting]);
+
   const {
     data: ingredients,
     isLoading,

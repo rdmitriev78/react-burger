@@ -109,6 +109,8 @@ export const selectIngredientCounts = createSelector(
   },
   {
     memoizeOptions: {
+      // При перестановке количество не меняется: возвращаем прежний Map,
+      // чтобы подписанные на счётчики разделы каталога не перерисовывались.
       resultEqualityCheck: areIngredientCountsEqual,
     },
   }

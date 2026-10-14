@@ -58,7 +58,8 @@ export const BurgerIngredient = memo(function BurgerIngredient({
         dragStartedRef.current = false;
       }}
       onClick={(event) => {
-        // Не пропускаем при клике, который завершает перетаскивание.
+        // После перетаскивания не открываем детали по завершающему клику указателя.
+        // Активацию с клавиатуры (detail === 0) пропускаем независимо от dragStartedRef.
         if (event.detail > 0 && dragStartedRef.current) {
           dragStartedRef.current = false;
           return;

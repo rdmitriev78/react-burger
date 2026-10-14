@@ -7,18 +7,18 @@ import { memo, useCallback, useId, useState } from 'react';
 
 import { BurgerConstructorDropZone } from '@components/burger-constructor-drop-zone/burger-constructor-drop-zone';
 import { BurgerConstructorIngredient } from '@components/burger-constructor-ingredient/burger-constructor-ingredient';
-import { useAppDispatch, useAppSelector } from '@hooks/redux';
+import { useAppSelector } from '@hooks/redux';
+import { useOrderSubmission } from '@hooks/use-order-submission';
 import {
   selectCanOrder,
   selectConstructorState,
   selectOrderPrice,
 } from '@services/constructor/constructor-slice';
-import { openOrderModal } from '@services/modal/modal-slice';
 
 import styles from './burger-constructor.module.css';
 
 export const BurgerConstructor = memo(function BurgerConstructor(): React.JSX.Element {
-  const dispatch = useAppDispatch();
+  const { submitOrder } = useOrderSubmission();
   const { bun, ingredients } = useAppSelector(selectConstructorState);
   const orderPrice = useAppSelector(selectOrderPrice);
   const canOrder = useAppSelector(selectCanOrder);
@@ -34,10 +34,16 @@ export const BurgerConstructor = memo(function BurgerConstructor(): React.JSX.El
     []
   );
   const handleOrderClick = useCallback((): void => {
-    if (!canOrder) return;
+    if (!canOrder || !bun) return;
 
-    dispatch(openOrderModal({ orderNumber: '034536' }));
-  }, [canOrder, dispatch]);
+    // Передаём состав на момент нажатия, сохраняя порядок и повторяющиеся ингредиенты.
+    // Одна выбранная булка представлена двумя идентификаторами: сверху и снизу.
+    void submitOrder([
+      bun._id,
+      ...ingredients.map(({ ingredient }) => ingredient._id),
+      bun._id,
+    ]);
+  }, [bun, canOrder, ingredients, submitOrder]);
 
   console.log('BurgerConstructor', bun, ingredients);
 
