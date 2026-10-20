@@ -2,7 +2,6 @@ import { createSlice } from '@reduxjs/toolkit';
 
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { TOrderResult, TOrderState } from '@services/order/order-slice.types';
-import type { RootState } from '@services/store';
 
 // RTK Query хранит HTTP-запрос, а этот slice — результат процесса оформления для интерфейса.
 const orderSlice = createSlice({
@@ -21,6 +20,10 @@ const orderSlice = createSlice({
     }),
     orderSubmissionStopped: (): TOrderState => ({ status: 'stopped' }),
   },
+  selectors: {
+    selectOrderSubmission: (state): TOrderState => state,
+    selectIsOrderSubmitting: (state): boolean => state.status === 'submitting',
+  },
 });
 
 export const {
@@ -30,7 +33,4 @@ export const {
   orderSubmissionStopped,
 } = orderSlice.actions;
 export const orderReducer = orderSlice.reducer;
-export const selectOrderSubmission = (state: RootState): TOrderState =>
-  state.orderSubmission;
-export const selectIsOrderSubmitting = (state: RootState): boolean =>
-  selectOrderSubmission(state).status === 'submitting';
+export const { selectOrderSubmission, selectIsOrderSubmitting } = orderSlice.selectors;

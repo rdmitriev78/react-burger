@@ -2,7 +2,6 @@ import { createSelector, createSlice, nanoid } from '@reduxjs/toolkit';
 
 import type { TBunIngredient, TFillingIngredient } from '@app-types/ingredient';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { RootState } from '@services/store';
 
 type TIngredientCounts = ReadonlyMap<string, number>;
 
@@ -20,6 +19,20 @@ const createInitialState = (): TConstructorState => ({
   bun: null,
   ingredients: [],
 });
+
+const areIngredientCountsEqual = (
+  previous: TIngredientCounts,
+  next: TIngredientCounts
+): boolean => {
+  if (previous === next) return true;
+  if (previous.size !== next.size) return false;
+
+  for (const [id, count] of previous) {
+    if (next.get(id) !== count) return false;
+  }
+
+  return true;
+};
 
 const constructorSlice = createSlice({
   name: 'burgerConstructor',
@@ -57,6 +70,40 @@ const constructorSlice = createSlice({
     },
     resetConstructor: (): TConstructorState => createInitialState(),
   },
+  selectors: {
+    selectConstructorState: (state): TConstructorState => state,
+    selectOrderPrice: createSelector(
+      [(state: TConstructorState): TConstructorState => state],
+      ({ bun, ingredients }): number =>
+        ingredients.reduce(
+          (total, { ingredient }) => total + ingredient.price,
+          bun ? bun.price * 2 : 0
+        )
+    ),
+    selectIngredientCounts: createSelector(
+      [(state: TConstructorState): TConstructorState => state],
+      ({ bun, ingredients }): TIngredientCounts => {
+        const counts = new Map<string, number>();
+
+        if (bun) counts.set(bun._id, 2);
+
+        for (const { ingredient } of ingredients) {
+          counts.set(ingredient._id, (counts.get(ingredient._id) ?? 0) + 1);
+        }
+
+        return counts;
+      },
+      {
+        memoizeOptions: {
+          // При перестановке количество не меняется: возвращаем прежний Map,
+          // чтобы подписанные на счётчики разделы каталога не перерисовывались.
+          resultEqualityCheck: areIngredientCountsEqual,
+        },
+      }
+    ),
+    selectCanOrder: ({ bun, ingredients }): boolean =>
+      bun !== null && ingredients.length > 0,
+  },
 });
 
 export const {
@@ -68,55 +115,9 @@ export const {
 } = constructorSlice.actions;
 export const constructorReducer = constructorSlice.reducer;
 
-export const selectConstructorState = (state: RootState): TConstructorState =>
-  state.burgerConstructor;
-
-export const selectOrderPrice = createSelector(
-  [selectConstructorState],
-  ({ bun, ingredients }): number =>
-    ingredients.reduce(
-      (total, { ingredient }) => total + ingredient.price,
-      bun ? bun.price * 2 : 0
-    )
-);
-
-const areIngredientCountsEqual = (
-  previous: TIngredientCounts,
-  next: TIngredientCounts
-): boolean => {
-  if (previous === next) return true;
-  if (previous.size !== next.size) return false;
-
-  for (const [id, count] of previous) {
-    if (next.get(id) !== count) return false;
-  }
-
-  return true;
-};
-
-export const selectIngredientCounts = createSelector(
-  [selectConstructorState],
-  ({ bun, ingredients }): TIngredientCounts => {
-    const counts = new Map<string, number>();
-
-    if (bun) counts.set(bun._id, 2);
-
-    for (const { ingredient } of ingredients) {
-      counts.set(ingredient._id, (counts.get(ingredient._id) ?? 0) + 1);
-    }
-
-    return counts;
-  },
-  {
-    memoizeOptions: {
-      // При перестановке количество не меняется: возвращаем прежний Map,
-      // чтобы подписанные на счётчики разделы каталога не перерисовывались.
-      resultEqualityCheck: areIngredientCountsEqual,
-    },
-  }
-);
-
-export const selectCanOrder = (state: RootState): boolean => {
-  const { bun, ingredients } = selectConstructorState(state);
-  return bun !== null && ingredients.length > 0;
-};
+export const {
+  selectConstructorState,
+  selectOrderPrice,
+  selectIngredientCounts,
+  selectCanOrder,
+} = constructorSlice.selectors;
