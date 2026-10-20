@@ -7,15 +7,18 @@ import { orderSlice } from './order/order-slice';
 
 import type { ThunkAction, UnknownAction } from '@reduxjs/toolkit';
 
+// combineSlices берёт reducer и reducerPath из каждого слайса и RTK Query API.
+const rootReducer = combineSlices(burgerApi, constructorSlice, modalSlice, orderSlice);
+
+export type RootState = ReturnType<typeof rootReducer>;
+
 export const store = configureStore({
-  // combineSlices берёт reducer и reducerPath из каждого слайса и RTK Query API.
-  reducer: combineSlices(burgerApi, constructorSlice, modalSlice, orderSlice),
+  reducer: rootReducer,
   // Подключение API к редьюсеру не добавляет middleware для запросов и кеша.
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(burgerApi.middleware),
 });
 
-export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 export type AppStore = typeof store;
 
