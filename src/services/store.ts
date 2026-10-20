@@ -1,19 +1,16 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { combineSlices, configureStore } from '@reduxjs/toolkit';
 
 import { burgerApi } from './api/burger-api';
-import { constructorReducer } from './constructor/constructor-slice';
-import { modalReducer } from './modal/modal-slice';
-import { orderReducer } from './order/order-slice';
+import { constructorSlice } from './constructor/constructor-slice';
+import { modalSlice } from './modal/modal-slice';
+import { orderSlice } from './order/order-slice';
 
 import type { ThunkAction, UnknownAction } from '@reduxjs/toolkit';
 
 export const store = configureStore({
-  reducer: {
-    [burgerApi.reducerPath]: burgerApi.reducer,
-    burgerConstructor: constructorReducer,
-    modal: modalReducer,
-    orderSubmission: orderReducer,
-  },
+  // combineSlices берёт reducer и reducerPath из каждого слайса и RTK Query API.
+  reducer: combineSlices(burgerApi, constructorSlice, modalSlice, orderSlice),
+  // Подключение API к редьюсеру не добавляет middleware для запросов и кеша.
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(burgerApi.middleware),
 });

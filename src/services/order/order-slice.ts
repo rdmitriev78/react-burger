@@ -4,7 +4,9 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import type { TOrderResult, TOrderState } from '@services/order/order-slice.types';
 
 // RTK Query хранит HTTP-запрос, а этот slice — результат процесса оформления для интерфейса.
-const orderSlice = createSlice({
+export const orderSlice = createSlice({
+  // name задаёт префикс типов actions, например orderSubmission/startOrderSubmission.
+  // reducerPath по умолчанию равен name: combineSlices и selectors используют этот ключ.
   name: 'orderSubmission',
   initialState: (): TOrderState => ({ status: 'idle' }),
   reducers: {
@@ -32,5 +34,4 @@ export const {
   orderSubmissionFailed,
   orderSubmissionStopped,
 } = orderSlice.actions;
-export const orderReducer = orderSlice.reducer;
 export const { selectOrderSubmission, selectIsOrderSubmitting } = orderSlice.selectors;

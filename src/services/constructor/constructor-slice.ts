@@ -34,7 +34,9 @@ const areIngredientCountsEqual = (
   return true;
 };
 
-const constructorSlice = createSlice({
+export const constructorSlice = createSlice({
+  // name задаёт префикс типов actions, например burgerConstructor/setBun.
+  // reducerPath по умолчанию равен name: combineSlices и selectors используют этот ключ.
   name: 'burgerConstructor',
   initialState: createInitialState,
   reducers: {
@@ -113,7 +115,6 @@ export const {
   moveIngredient,
   resetConstructor,
 } = constructorSlice.actions;
-export const constructorReducer = constructorSlice.reducer;
 
 export const {
   selectConstructorState,
