@@ -50,7 +50,6 @@ export const burgerApi = createApi({
   reducerPath: 'burgerApi',
   baseQuery: fetchBaseQuery({
     baseUrl: burgerApiBaseUrl,
-    fetchFn: async (input, init): Promise<Response> => fetch(input, init),
   }),
   endpoints: (builder) => ({
     createOrder: builder.mutation<TCreateOrderResponse, TCreateOrderRequest>({
