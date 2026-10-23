@@ -1,5 +1,7 @@
 import { createSelector, createSlice, nanoid } from '@reduxjs/toolkit';
 
+import { orderSubmissionSucceeded } from '@services/order/order-slice';
+
 import type { TBunIngredient, TFillingIngredient } from '@app-types/ingredient';
 import type { PayloadAction } from '@reduxjs/toolkit';
 
@@ -71,6 +73,13 @@ export const constructorSlice = createSlice({
       state.ingredients.splice(toIndex, 0, ingredient);
     },
     resetConstructor: (): TConstructorState => createInitialState(),
+  },
+  extraReducers: (builder) => {
+    // Состав конструктора сохраняется до подтверждённого успеха актуальной отправки.
+    builder.addCase(
+      orderSubmissionSucceeded,
+      (): TConstructorState => createInitialState()
+    );
   },
   selectors: {
     selectConstructorState: (state): TConstructorState => state,

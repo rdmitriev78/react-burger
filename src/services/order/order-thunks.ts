@@ -23,7 +23,7 @@ const selectOrderRequest = burgerApi.endpoints.createOrder.select(
 /**
  * Создаёт thunk отправки заказа. Он выполняется через dispatch(submitOrder(ids)),
  * получает dispatch и getState от Redux и возвращает Promise<void>.
- * Состав конструктора сохраняется; состояние оформления обновляется отдельно от модалки.
+ * Состояние оформления обновляется отдельно от модалки.
  */
 export const submitOrder =
   (ingredientIds: string[]): AppThunk<Promise<void>> =>
