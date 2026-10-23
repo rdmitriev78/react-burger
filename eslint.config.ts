@@ -114,6 +114,7 @@ export default defineConfig(
           ],
                     internalPattern: [
             '^/',
+            '^@app-types/',
             '^@components/',
             '^@contexts/',
             '^@hooks/',

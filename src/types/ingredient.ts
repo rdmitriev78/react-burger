@@ -1,4 +1,4 @@
-export type TIngredientBase = {
+type TIngredientBase = {
   _id: string;
   name: string;
   proteins: number;
@@ -21,19 +21,3 @@ export type TFillingIngredient = TIngredientBase & {
 };
 
 export type TIngredient = TBunIngredient | TFillingIngredient;
-
-export type TIngredientCounts = ReadonlyMap<string, number>;
-
-export type TConstructorIngredient = {
-  id: string;
-  ingredient: TFillingIngredient;
-};
-
-export type TConstructorState = {
-  bun: TBunIngredient;
-  ingredients: TConstructorIngredient[];
-};
-
-export type TOrder = {
-  orderNumber: string;
-};

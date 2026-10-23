@@ -12,7 +12,12 @@
   text-align: center;
   background: transparent;
   border: none;
-  cursor: pointer;
+  cursor: grab;
+}
+
+.product_dragging {
+  cursor: grabbing;
+  opacity: 0.5;
 }
 
 .product_image {

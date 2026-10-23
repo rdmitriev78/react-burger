@@ -2,85 +2,129 @@ import {
   Button,
   ConstructorElement,
   CurrencyIcon,
-  DragIcon,
 } from '@krgaa/react-developer-burger-ui-components';
-import { memo } from 'react';
+import { memo, useCallback, useId, useState } from 'react';
 
-import { useOrderPrice } from '@hooks/use-order-price';
-
-import type { TConstructorState } from '@utils/types';
+import { BurgerConstructorDropZone } from '@components/burger-constructor-drop-zone/burger-constructor-drop-zone';
+import { BurgerConstructorIngredient } from '@components/burger-constructor-ingredient/burger-constructor-ingredient';
+import { useAppSelector } from '@hooks/redux';
+import { useOrderSubmission } from '@hooks/use-order-submission';
+import {
+  selectCanOrder,
+  selectConstructorState,
+  selectOrderPrice,
+} from '@services/constructor/constructor-slice';
 
 import styles from './burger-constructor.module.css';
 
-type TBurgerConstructorProps = {
-  constructorState: TConstructorState | null;
-  onOrderClick: () => void;
-  onIngredientRemove: (id: string) => void;
-};
+export const BurgerConstructor = memo(function BurgerConstructor(): React.JSX.Element {
+  const { submitOrder } = useOrderSubmission();
+  const { bun, ingredients } = useAppSelector(selectConstructorState);
+  const orderPrice = useAppSelector(selectOrderPrice);
+  const canOrder = useAppSelector(selectCanOrder);
+  const moveInstructionsId = useId();
+  const [moveAnnouncement, setMoveAnnouncement] = useState('');
+  const handleMoveAnnouncement = useCallback((message: string): void => {
+    setMoveAnnouncement(message);
+  }, []);
+  const handleBunDragStartCapture = useCallback(
+    (event: React.DragEvent<HTMLDivElement>): void => {
+      event.preventDefault();
+    },
+    []
+  );
+  const handleOrderClick = useCallback((): void => {
+    if (!canOrder || !bun) return;
 
-export const BurgerConstructor = memo(function BurgerConstructor({
-  constructorState,
-  onOrderClick,
-  onIngredientRemove,
-}: TBurgerConstructorProps): React.JSX.Element {
-  const orderPrice = useOrderPrice(constructorState);
+    // Передаём состав на момент нажатия, сохраняя порядок и повторяющиеся ингредиенты.
+    // Одна выбранная булка представлена двумя идентификаторами: сверху и снизу.
+    void submitOrder([
+      bun._id,
+      ...ingredients.map(({ ingredient }) => ingredient._id),
+      bun._id,
+    ]);
+  }, [bun, canOrder, ingredients, submitOrder]);
 
-  console.log('BurgerConstructor', constructorState?.ingredients);
-  // ранний возврат, если нет ингредиентов для конструктора
-  if (!constructorState) {
-    return (
-      <section className={styles.burger_constructor}>
-        <p
-          className={`${styles.text_placeholder} text text_type_main-medium text_color_inactive mt-20 ml-4`}
-        >
-          Добавьте ингредиенты
-        </p>
-      </section>
-    );
-  }
-
-  const { bun, ingredients } = constructorState;
+  console.log('BurgerConstructor', bun, ingredients);
 
   return (
     <section className={styles.burger_constructor}>
-      <div className={`${styles.burger_structure} mb-10 ml-4`}>
-        <div className={`${styles.burger_item} ${styles.burger_item_locked}`}>
-          <ConstructorElement
-            isLocked={true}
-            price={bun.price}
-            text={`${bun.name} (верх)`}
-            thumbnail={bun.image_mobile}
-            type={'top'}
-          />
+      <p id={moveInstructionsId} className={styles.visually_hidden}>
+        Нажмите Enter или пробел, чтобы начать перемещение. Стрелки вверх и вниз меняют
+        позицию ингредиента. Enter, пробел, Escape или Tab завершают перемещение,
+        сохраняя новый порядок.
+      </p>
+      <div
+        className={styles.visually_hidden}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {moveAnnouncement}
+      </div>
+      <BurgerConstructorDropZone>
+        <div
+          className={`${styles.burger_item} ${styles.burger_item_locked}`}
+          onDragStartCapture={handleBunDragStartCapture}
+        >
+          {!bun ? (
+            <div
+              className={`${styles.placeholder} ${styles.placeholder_top} text text_type_main-default`}
+            >
+              Выберите булки
+            </div>
+          ) : (
+            <ConstructorElement
+              isLocked={true}
+              price={bun.price}
+              text={`${bun.name} (верх)`}
+              thumbnail={bun.image_mobile}
+              type={'top'}
+            />
+          )}
         </div>
 
         <div className={`${styles.burger_items} custom-scroll`}>
-          {ingredients.map(({ id, ingredient }) => {
-            return (
-              <div key={id} className={styles.burger_item}>
-                <DragIcon type="primary" />
-
-                <ConstructorElement
-                  handleClose={() => onIngredientRemove(id)}
-                  price={ingredient.price}
-                  text={ingredient.name}
-                  thumbnail={ingredient.image_mobile}
-                />
+          {ingredients.length === 0 ? (
+            <div className={`${styles.burger_item} pl-8`}>
+              <div className={`${styles.placeholder} text text_type_main-default`}>
+                Выберите начинку
               </div>
-            );
-          })}
+            </div>
+          ) : (
+            ingredients.map(({ id, ingredient }) => (
+              <BurgerConstructorIngredient
+                key={id}
+                id={id}
+                ingredient={ingredient}
+                instructionsId={moveInstructionsId}
+                onAnnounce={handleMoveAnnouncement}
+              />
+            ))
+          )}
         </div>
 
-        <div className={`${styles.burger_item} ${styles.burger_item_locked}`}>
-          <ConstructorElement
-            isLocked={true}
-            price={bun.price}
-            text={`${bun.name} (низ)`}
-            thumbnail={bun.image_mobile}
-            type={'bottom'}
-          />
+        <div
+          className={`${styles.burger_item} ${styles.burger_item_locked}`}
+          onDragStartCapture={handleBunDragStartCapture}
+        >
+          {!bun ? (
+            <div
+              className={`${styles.placeholder} ${styles.placeholder_bottom} text text_type_main-default`}
+            >
+              Перетащите сюда булку
+            </div>
+          ) : (
+            <ConstructorElement
+              isLocked={true}
+              price={bun.price}
+              text={`${bun.name} (низ)`}
+              thumbnail={bun.image_mobile}
+              type={'bottom'}
+            />
+          )}
         </div>
-      </div>
+      </BurgerConstructorDropZone>
 
       <div className={`${styles.burger_price} mr-4 ml-4`}>
         <div className={styles.burger_price_value}>
@@ -91,7 +135,13 @@ export const BurgerConstructor = memo(function BurgerConstructor({
           </span>
         </div>
 
-        <Button onClick={onOrderClick} size="large" type="primary" htmlType={'button'}>
+        <Button
+          onClick={handleOrderClick}
+          disabled={!canOrder}
+          size="large"
+          type="primary"
+          htmlType={'button'}
+        >
           Оформить заказ
         </Button>
       </div>

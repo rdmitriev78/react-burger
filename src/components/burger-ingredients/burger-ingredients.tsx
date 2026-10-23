@@ -1,9 +1,13 @@
 import { Tab } from '@krgaa/react-developer-burger-ui-components';
-import { memo } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+
+import { useAppDispatch, useAppSelector } from '@hooks/redux';
+import { selectIngredientsByType } from '@services/ingredients/ingredients-selectors';
+import { openIngredientModal } from '@services/modal/modal-slice';
 
 import { BurgerIngredientsSection } from '../burger-ingredients-section/burger-ingredients-section';
 
-import type { TIngredient, TIngredientCounts } from '@utils/types';
+import type { TIngredient } from '@app-types/ingredient';
 
 import styles from './burger-ingredients.module.css';
 
@@ -13,63 +17,117 @@ const ingredientSections = [
   { type: 'sauce', title: 'Соусы' },
 ] as const;
 
-type TBurgerIngredientsProps = {
-  ingredients: TIngredient[];
-  ingredientCounts: TIngredientCounts;
-  onIngredientClick: (ingredient: TIngredient) => void;
-};
+export const BurgerIngredients = memo(function BurgerIngredients(): React.JSX.Element {
+  const dispatch = useAppDispatch();
+  const ingredientsByType = useAppSelector(selectIngredientsByType);
+  const handleIngredientClick = useCallback(
+    (ingredient: TIngredient): void => {
+      dispatch(openIngredientModal(ingredient));
+    },
+    [dispatch]
+  );
+  const [activeTab, setActiveTab] = useState<TIngredient['type']>('bun');
+  const activeTabRef = useRef<TIngredient['type']>('bun');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<Record<TIngredient['type'], HTMLElement | null>>({
+    bun: null,
+    main: null,
+    sauce: null,
+  });
 
-export const BurgerIngredients = memo(function BurgerIngredients({
-  ingredients,
-  ingredientCounts,
-  onIngredientClick,
-}: TBurgerIngredientsProps): React.JSX.Element {
-  console.log('BurgerIngredients', ingredients);
+  const updateActiveTab = useCallback((): void => {
+    const container = containerRef.current;
+    if (!container || container.clientHeight === 0) return;
+
+    const containerTop = container.getBoundingClientRect().top + container.clientTop;
+    let closestType: TIngredient['type'] = 'bun';
+    let closestDistance = Infinity;
+
+    // Ищем ближайший раздел
+    for (const { type } of ingredientSections) {
+      const section = sectionRefs.current[type];
+      if (!section) continue;
+
+      const distance = Math.abs(section.getBoundingClientRect().top - containerTop);
+      if (distance < closestDistance) {
+        closestType = type;
+        closestDistance = distance;
+      }
+    }
+
+    // Последний раздел может не достигать верхней границы контейнера
+    // Если прокрутили до самого низа, активируем последний таб
+    if (
+      container.scrollTop > 0 &&
+      container.scrollHeight - container.clientHeight - container.scrollTop <= 1
+    ) {
+      closestType = ingredientSections[ingredientSections.length - 1].type;
+    }
+
+    if (activeTabRef.current === closestType) return;
+
+    activeTabRef.current = closestType;
+    setActiveTab(closestType);
+  }, []);
+
+  const scrollToSection = (type: TIngredient['type']): void => {
+    sectionRefs.current[type]?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+      inline: 'nearest',
+    });
+  };
+
+  useEffect(() => {
+    updateActiveTab();
+
+    const observer = new ResizeObserver(updateActiveTab);
+    if (containerRef.current) observer.observe(containerRef.current);
+    for (const { type } of ingredientSections) {
+      const section = sectionRefs.current[type];
+      if (section) observer.observe(section);
+    }
+
+    return (): void => observer.disconnect();
+  }, [ingredientsByType, updateActiveTab]);
+
+  console.log('BurgerIngredients');
 
   return (
     <section className={styles.burger_ingredients}>
       <nav>
         <ul className={styles.menu}>
-          {/* TODO: Переделать формирование Tab на использование ingredientSections */}
-          <Tab
-            value="bun"
-            active={true}
-            onClick={() => {
-              /* TODO */
-            }}
-          >
-            Булки
-          </Tab>
-          <Tab
-            value="main"
-            active={false}
-            onClick={() => {
-              /* TODO */
-            }}
-          >
-            Начинки
-          </Tab>
-          <Tab
-            value="sauce"
-            active={false}
-            onClick={() => {
-              /* TODO */
-            }}
-          >
-            Соусы
-          </Tab>
+          {ingredientSections.map(({ type, title }) => (
+            <Tab
+              key={type}
+              value={type}
+              active={activeTab === type}
+              onClick={() => scrollToSection(type)}
+            >
+              {title}
+            </Tab>
+          ))}
         </ul>
       </nav>
 
-      <div className={`${styles.menu_items} mt-10 custom-scroll`}>
+      <div
+        ref={containerRef}
+        className={`${styles.menu_items} mt-10 custom-scroll`}
+        onScroll={updateActiveTab}
+      >
         {ingredientSections.map(({ type, title }) => (
-          <BurgerIngredientsSection
+          <section
             key={type}
-            title={title}
-            ingredients={ingredients.filter((ingredient) => ingredient.type === type)}
-            ingredientCounts={ingredientCounts}
-            onIngredientClick={onIngredientClick}
-          />
+            ref={(sectionRef) => {
+              sectionRefs.current[type] = sectionRef;
+            }}
+          >
+            <BurgerIngredientsSection
+              title={title}
+              ingredients={ingredientsByType[type]}
+              onIngredientClick={handleIngredientClick}
+            />
+          </section>
         ))}
       </div>
     </section>

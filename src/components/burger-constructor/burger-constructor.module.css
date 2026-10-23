@@ -6,15 +6,29 @@
   color: var(--text-primary-color);
 }
 
-.text_placeholder {
+.placeholder {
+  display: flex;
+  flex-grow: 1;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 536px;
+  min-height: 80px;
+  padding: 16px 24px;
+  color: var(--text-inactive-color);
   text-align: center;
+  background-color: var(--background-element);
+  border: 1px dashed var(--text-inactive-color);
+  border-radius: var(--common-border-radius-s);
 }
 
-.burger_structure {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-height: 0;
+.placeholder_top {
+  border-radius: var(--top-constructor-item-border-radius);
+}
+
+.placeholder_bottom {
+  border-radius: var(--bottom-constructor-item-border-radius);
 }
 
 .burger_items {
