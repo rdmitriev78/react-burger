@@ -37,7 +37,9 @@ export const submitOrder =
     // Открываем диалог до начала запроса: фон блокируется.
     dispatch(openOrderModal());
 
-    // initiate запускает существующий endpoint без React-хука useMutation.
+    // Запрос запускается из Redux thunk, где нельзя вызывать React-хуки,
+    // поэтому используем dispatch(endpoint.initiate(...)) вместо useCreateOrderMutation.
+    // Так отправка заказа и остановка ожидания управляются независимо от компонентов.
     // request содержит unwrap и abort и остаётся локальной переменной thunk;
     // в Redux state RTK Query записывает только данные и состояние запроса.
     const request = dispatch(
