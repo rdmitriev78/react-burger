@@ -1,9 +1,8 @@
 import { Tab } from '@krgaa/react-developer-burger-ui-components';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 
-import { useAppDispatch, useAppSelector } from '@hooks/redux';
+import { useAppSelector } from '@hooks/redux';
 import { selectIngredientsByType } from '@services/ingredients/ingredients-selectors';
-import { openIngredientModal } from '@services/modal/modal-slice';
 
 import { BurgerIngredientsSection } from '../burger-ingredients-section/burger-ingredients-section';
 
@@ -18,14 +17,7 @@ const ingredientSections = [
 ] as const;
 
 export const BurgerIngredients = memo(function BurgerIngredients(): React.JSX.Element {
-  const dispatch = useAppDispatch();
   const ingredientsByType = useAppSelector(selectIngredientsByType);
-  const handleIngredientClick = useCallback(
-    (ingredient: TIngredient): void => {
-      dispatch(openIngredientModal(ingredient));
-    },
-    [dispatch]
-  );
   const [activeTab, setActiveTab] = useState<TIngredient['type']>('bun');
   const activeTabRef = useRef<TIngredient['type']>('bun');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -125,7 +117,6 @@ export const BurgerIngredients = memo(function BurgerIngredients(): React.JSX.El
             <BurgerIngredientsSection
               title={title}
               ingredients={ingredientsByType[type]}
-              onIngredientClick={handleIngredientClick}
             />
           </section>
         ))}
