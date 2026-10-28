@@ -19,7 +19,8 @@ export default defineConfig({
     }),
     tsconfigPaths(),
   ],
-  base: '',
+  // Относительный base ломает загрузку assets при прямом входе на /ingredients/:id.
+  base: '/',
   test: {
     globals: true,
     environment: 'jsdom',

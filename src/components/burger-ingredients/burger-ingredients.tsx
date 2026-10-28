@@ -16,7 +16,13 @@ const ingredientSections = [
   { type: 'sauce', title: 'Соусы' },
 ] as const;
 
-export const BurgerIngredients = memo(function BurgerIngredients(): React.JSX.Element {
+type TBurgerIngredientsProps = {
+  onIngredientClick: (ingredient: TIngredient) => void;
+};
+
+export const BurgerIngredients = memo(function BurgerIngredients({
+  onIngredientClick,
+}: TBurgerIngredientsProps): React.JSX.Element {
   const ingredientsByType = useAppSelector(selectIngredientsByType);
   const [activeTab, setActiveTab] = useState<TIngredient['type']>('bun');
   const activeTabRef = useRef<TIngredient['type']>('bun');
@@ -117,6 +123,7 @@ export const BurgerIngredients = memo(function BurgerIngredients(): React.JSX.El
             <BurgerIngredientsSection
               title={title}
               ingredients={ingredientsByType[type]}
+              onIngredientClick={onIngredientClick}
             />
           </section>
         ))}

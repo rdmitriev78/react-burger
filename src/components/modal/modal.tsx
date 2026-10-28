@@ -17,6 +17,7 @@ type TModalProps = {
   children: ReactNode;
   onClose: () => void;
   canClose?: boolean;
+  getFallbackFocus?: () => HTMLElement | null;
 } & TModalTitleOrAriaLabel;
 
 export const Modal = ({
@@ -25,9 +26,11 @@ export const Modal = ({
   children,
   onClose,
   canClose = true,
+  getFallbackFocus,
 }: TModalProps): React.JSX.Element => {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const fallbackFocusGetterRef = useRef(getFallbackFocus);
   const titleId = useId();
   const modalRoot = document.getElementById('modal-root');
   const hasTitle = Boolean(title?.trim());
@@ -67,9 +70,15 @@ export const Modal = ({
     }
   };
 
+  // Обновляем запасную цель, не перезапуская блокировку фона при навигации.
+  useLayoutEffect(() => {
+    fallbackFocusGetterRef.current = getFallbackFocus;
+  }, [getFallbackFocus]);
+
   // Блокируем фон и управляем фокусом только при открытии и закрытии модалки.
   useLayoutEffect(() => {
     const previousFocus = document.activeElement;
+    const dialog = dialogRef.current;
     const previousOverflow = document.body.style.overflow;
     const appRoot = document.getElementById('root');
     const previousInert = appRoot?.inert;
@@ -81,9 +90,21 @@ export const Modal = ({
     return (): void => {
       document.body.style.overflow = previousOverflow;
       if (appRoot) appRoot.inert = previousInert ?? false;
-      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
-        previousFocus.focus();
-      }
+      // При прямом входе исходным элементом часто оказывается body.
+      // Вызывающий компонент выбирает запасную цель с учётом текущей страницы.
+      const canRestoreFocus =
+        previousFocus instanceof HTMLElement &&
+        previousFocus !== document.body &&
+        previousFocus !== document.documentElement &&
+        previousFocus.isConnected &&
+        !dialog?.contains(previousFocus) &&
+        !previousFocus.closest('[inert]') &&
+        !previousFocus.matches(':disabled') &&
+        previousFocus.getClientRects().length > 0;
+      const focusTarget = canRestoreFocus
+        ? previousFocus
+        : fallbackFocusGetterRef.current?.();
+      focusTarget?.focus({ preventScroll: true });
     };
   }, []);
 

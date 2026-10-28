@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 
 import { AppHeader } from '@components/app-header/app-header';
@@ -9,6 +9,7 @@ import styles from './app.module.css';
 
 export const App = (): React.JSX.Element => {
   const { stopWaiting } = useOrderSubmission();
+  const constructorLinkRef = useRef<HTMLAnchorElement>(null);
 
   // Отменяем ожидание только при размонтировании приложения, а не отдельных потребителей хука.
   // OrderSubmission размонтируется при смене статуса, поэтому cleanup запроса не хранится в нём.
@@ -16,9 +17,9 @@ export const App = (): React.JSX.Element => {
 
   return (
     <div className={styles.app}>
-      <AppHeader />
+      <AppHeader constructorLinkRef={constructorLinkRef} />
       <Outlet />
-      <AppModals />
+      <AppModals ingredientFallbackFocusRef={constructorLinkRef} />
     </div>
   );
 };

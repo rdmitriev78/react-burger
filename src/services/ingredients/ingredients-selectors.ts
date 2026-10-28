@@ -10,6 +10,12 @@ const selectIngredientsQuery = burgerApi.endpoints.getIngredients.select(undefin
 export const selectIngredients = (state: RootState): TIngredient[] | undefined =>
   selectIngredientsQuery(state).data;
 
+export const selectIngredientById = (
+  state: RootState,
+  id: string | undefined
+): TIngredient | undefined =>
+  selectIngredients(state)?.find((ingredient) => ingredient._id === id);
+
 export const selectIngredientsByType = createSelector(
   [selectIngredients],
   (ingredients): Record<TIngredient['type'], TIngredient[]> => {
