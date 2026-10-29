@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 
 import { App } from '@components/app/app';
 import { IngredientModalRoute } from '@components/ingredient-modal-route/ingredient-modal-route';
+import { ForgotPasswordPage } from '@pages/forgot-password/forgot-password';
 import { Home } from '@pages/home/home';
 import { LoginPage } from '@pages/login/login';
 import { NotFound } from '@pages/not-found/not-found';
@@ -31,6 +32,10 @@ export const router = createBrowserRouter([
       {
         path: 'register',
         element: <RegisterPage />,
+      },
+      {
+        path: 'forgot-password',
+        element: <ForgotPasswordPage />,
       },
       {
         path: '*',
