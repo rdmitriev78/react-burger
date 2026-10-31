@@ -88,12 +88,8 @@ export const AppModals = ({
     if (isClosingRouteRef.current) return;
     isClosingRouteRef.current = true;
 
-    const navigationState: unknown = location.state;
     const fromHome =
-      typeof navigationState === 'object' &&
-      navigationState !== null &&
-      'fromHome' in navigationState &&
-      navigationState.fromHome === true;
+      (location.state as { fromHome?: boolean } | null)?.fromHome === true;
 
     // После клика на главной возвращаемся назад.
     // При прямом входе переходим на главную с заменой текущей записи:

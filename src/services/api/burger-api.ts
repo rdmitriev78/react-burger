@@ -19,29 +19,23 @@ type TIngredientsResponse = {
 
 const burgerApiBaseUrl = 'https://new-stellarburgers.education-services.ru/api/';
 
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
 // Проверяем только оболочку ответа и наличие ингредиентов.
 // Поля элементов data не проверяем: доверяем учебному API.
 const isGetIngredientsResponseValid = (body: unknown): body is TIngredientsResponse =>
-  typeof body === 'object' &&
-  body !== null &&
-  'success' in body &&
+  isObject(body) &&
   body.success === true &&
-  'data' in body &&
   Array.isArray(body.data) &&
   body.data.length > 0;
 
 const isCreateOrderResponseValid = (body: unknown): body is TCreateOrderResponse =>
-  typeof body === 'object' &&
-  body !== null &&
-  'success' in body &&
+  isObject(body) &&
   body.success === true &&
-  'name' in body &&
   typeof body.name === 'string' &&
   body.name.trim().length > 0 &&
-  'order' in body &&
-  typeof body.order === 'object' &&
-  body.order !== null &&
-  'number' in body.order &&
+  isObject(body.order) &&
   typeof body.order.number === 'number' &&
   Number.isSafeInteger(body.order.number) &&
   body.order.number > 0;

@@ -1,0 +1,16 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.input > div,
+.input {
+  width: 100%;
+}
+
+.input input[readonly] {
+  color: var(--text-inactive-color);
+}
