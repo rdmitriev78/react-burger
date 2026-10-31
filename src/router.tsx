@@ -2,28 +2,31 @@ import { createBrowserRouter } from 'react-router-dom';
 
 import { App } from '@components/app/app';
 import { IngredientModalRoute } from '@components/ingredient-modal-route/ingredient-modal-route';
-import { ProfileLayout } from '@components/profile-layout/profile-layout';
 import { ProtectedRoute } from '@components/protected-route/protected-route';
-import { FeedPage } from '@pages/feed/feed';
-import { ForgotPasswordPage } from '@pages/forgot-password/forgot-password';
-import { Home } from '@pages/home/home';
-import { LoginPage } from '@pages/login/login';
-import { NotFound } from '@pages/not-found/not-found';
-import { ProfileOrderPage } from '@pages/profile-order/profile-order';
-import { ProfilePage } from '@pages/profile/profile';
-import { RegisterPage } from '@pages/register/register';
-import { ResetPasswordPage } from '@pages/reset-password/reset-password';
+import { RequestLoading } from '@components/request-loading/request-loading';
 import { RouteError } from '@pages/route-error/route-error';
+
+import type { ComponentType } from 'react';
+
+type TRouteModule = { Component: ComponentType };
 
 export const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
     errorElement: <RouteError />,
+    // В data router этот fallback показывается до загрузки первого lazy-маршрута.
+    hydrateFallbackElement: (
+      <main>
+        <RequestLoading message="Загружаем страницу…" />
+      </main>
+    ),
     children: [
       {
         path: '/',
-        element: <Home />,
+        lazy: async (): Promise<TRouteModule> => ({
+          Component: (await import('@pages/home/home')).Home,
+        }),
         children: [
           {
             path: 'ingredients/:id',
@@ -36,15 +39,23 @@ export const router = createBrowserRouter([
         children: [
           {
             path: 'profile',
-            element: <ProfileLayout />,
+            lazy: async (): Promise<TRouteModule> => ({
+              Component: (await import('@components/profile-layout/profile-layout'))
+                .ProfileLayout,
+            }),
             children: [
               {
                 index: true,
-                element: <ProfilePage />,
+                lazy: async (): Promise<TRouteModule> => ({
+                  Component: (await import('@pages/profile/profile')).ProfilePage,
+                }),
               },
               {
                 path: 'orders',
-                element: <ProfileOrderPage />,
+                lazy: async (): Promise<TRouteModule> => ({
+                  Component: (await import('@pages/profile-order/profile-order'))
+                    .ProfileOrderPage,
+                }),
               },
             ],
           },
@@ -52,32 +63,46 @@ export const router = createBrowserRouter([
       },
       {
         path: 'feed',
-        element: <FeedPage />,
+        lazy: async (): Promise<TRouteModule> => ({
+          Component: (await import('@pages/feed/feed')).FeedPage,
+        }),
       },
       {
         element: <ProtectedRoute onlyGuest />,
         children: [
           {
             path: 'login',
-            element: <LoginPage />,
+            lazy: async (): Promise<TRouteModule> => ({
+              Component: (await import('@pages/login/login')).LoginPage,
+            }),
           },
           {
             path: 'register',
-            element: <RegisterPage />,
+            lazy: async (): Promise<TRouteModule> => ({
+              Component: (await import('@pages/register/register')).RegisterPage,
+            }),
           },
           {
             path: 'forgot-password',
-            element: <ForgotPasswordPage />,
+            lazy: async (): Promise<TRouteModule> => ({
+              Component: (await import('@pages/forgot-password/forgot-password'))
+                .ForgotPasswordPage,
+            }),
           },
           {
             path: 'reset-password',
-            element: <ResetPasswordPage />,
+            lazy: async (): Promise<TRouteModule> => ({
+              Component: (await import('@pages/reset-password/reset-password'))
+                .ResetPasswordPage,
+            }),
           },
         ],
       },
       {
         path: '*',
-        element: <NotFound />,
+        lazy: async (): Promise<TRouteModule> => ({
+          Component: (await import('@pages/not-found/not-found')).NotFound,
+        }),
       },
     ],
   },
