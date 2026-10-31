@@ -1,6 +1,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import { isAuthResponse, isObject, isUserResponse } from '@services/auth/auth.types';
+import { isPasswordRecoveryResponse } from '@services/password-recovery/password-recovery.types';
 
 import { createBaseQueryWithReauth } from './base-query-with-reauth';
 
@@ -11,6 +12,11 @@ import type {
   TRegistration,
   TUserResponse,
 } from '@services/auth/auth.types';
+import type {
+  TPasswordRecoveryResponse,
+  TPasswordResetEmailRequest,
+  TPasswordResetRequest,
+} from '@services/password-recovery/password-recovery.types';
 
 type TCreateOrderRequest = {
   ingredients: string[];
@@ -49,6 +55,27 @@ export const burgerApi = createApi({
   reducerPath: 'burgerApi',
   baseQuery: createBaseQueryWithReauth(),
   endpoints: (builder) => ({
+    requestPasswordReset: builder.mutation<
+      TPasswordRecoveryResponse,
+      TPasswordResetEmailRequest
+    >({
+      query: (body) => ({
+        url: 'password-reset',
+        method: 'POST',
+        body,
+        validateStatus: (response, data: unknown): boolean =>
+          response.ok && isPasswordRecoveryResponse(data),
+      }),
+    }),
+    resetPassword: builder.mutation<TPasswordRecoveryResponse, TPasswordResetRequest>({
+      query: (body) => ({
+        url: 'password-reset/reset',
+        method: 'POST',
+        body,
+        validateStatus: (response, data: unknown): boolean =>
+          response.ok && isPasswordRecoveryResponse(data),
+      }),
+    }),
     login: builder.mutation<TAuthResponse, TCredentials>({
       query: (body) => ({
         url: 'auth/login',
@@ -108,5 +135,10 @@ export const burgerApi = createApi({
   }),
 });
 
-export const { useGetIngredientsQuery, useLoginMutation, useRegisterMutation } =
-  burgerApi;
+export const {
+  useGetIngredientsQuery,
+  useLoginMutation,
+  useRegisterMutation,
+  useRequestPasswordResetMutation,
+  useResetPasswordMutation,
+} = burgerApi;
