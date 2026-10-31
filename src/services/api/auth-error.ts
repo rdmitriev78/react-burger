@@ -5,12 +5,7 @@ export const isAccessDenied = (error: FetchBaseQueryError | undefined): boolean 
 
 // Рабочий контракт API: refresh применим только к запросам с access-токеном.
 export const needsTokenRefresh = (
-  endpoint: string,
+  authorized: boolean,
   accessToken: string | undefined,
   error: FetchBaseQueryError | undefined
-): boolean =>
-  (endpoint === 'getCurrentUser' ||
-    endpoint === 'updateCurrentUser' ||
-    endpoint === 'createOrder') &&
-  Boolean(accessToken) &&
-  isAccessDenied(error);
+): boolean => authorized && Boolean(accessToken) && isAccessDenied(error);

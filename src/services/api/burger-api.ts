@@ -60,6 +60,7 @@ export const burgerApi = createApi({
       TPasswordRecoveryResponse,
       TPasswordResetEmailRequest
     >({
+      extraOptions: { auth: false },
       query: (body) => ({
         url: 'password-reset',
         method: 'POST',
@@ -69,6 +70,7 @@ export const burgerApi = createApi({
       }),
     }),
     resetPassword: builder.mutation<TPasswordRecoveryResponse, TPasswordResetRequest>({
+      extraOptions: { auth: false },
       query: (body) => ({
         url: 'password-reset/reset',
         method: 'POST',
@@ -78,6 +80,7 @@ export const burgerApi = createApi({
       }),
     }),
     login: builder.mutation<TAuthResponse, TCredentials>({
+      extraOptions: { auth: false },
       query: (body) => ({
         url: 'auth/login',
         method: 'POST',
@@ -87,6 +90,7 @@ export const burgerApi = createApi({
       }),
     }),
     register: builder.mutation<TAuthResponse, TRegistration>({
+      extraOptions: { auth: false },
       query: (body) => ({
         url: 'auth/register',
         method: 'POST',
@@ -96,6 +100,7 @@ export const burgerApi = createApi({
       }),
     }),
     logout: builder.mutation<{ success: true; message: string }, { token: string }>({
+      extraOptions: { auth: false },
       query: (body) => ({
         url: 'auth/logout',
         method: 'POST',
@@ -108,6 +113,7 @@ export const burgerApi = createApi({
       }),
     }),
     getCurrentUser: builder.query<TUserResponse, void>({
+      extraOptions: { auth: true },
       keepUnusedDataFor: 0,
       query: () => ({
         url: 'auth/user',
@@ -116,6 +122,7 @@ export const burgerApi = createApi({
       }),
     }),
     updateCurrentUser: builder.mutation<TUserResponse, TUserUpdate>({
+      extraOptions: { auth: true },
       query: (body) => ({
         url: 'auth/user',
         method: 'PATCH',
@@ -125,6 +132,7 @@ export const burgerApi = createApi({
       }),
     }),
     createOrder: builder.mutation<TCreateOrderResponse, TCreateOrderRequest>({
+      extraOptions: { auth: true },
       query: (body) => ({
         url: 'orders',
         method: 'POST',
@@ -134,6 +142,7 @@ export const burgerApi = createApi({
       }),
     }),
     getIngredients: builder.query<TIngredient[], void>({
+      extraOptions: { auth: false },
       query: () => ({
         url: 'ingredients',
         validateStatus: (response, body: unknown): boolean =>

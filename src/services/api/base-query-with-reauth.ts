@@ -19,6 +19,12 @@ import type {
 } from '@reduxjs/toolkit/query';
 import type { RootState } from '@services/store';
 
+type TReauthOptions = {
+  // Токен при наличии и общий refresh, без запрета гостевых запросов.
+  // Отсутствующая настройка означает публичный запрос (auth: false).
+  auth?: boolean;
+};
+
 const rawQuery = fetchBaseQuery({
   baseUrl: 'https://new-stellarburgers.education-services.ru/api/',
   fetchFn: (input, init) => fetch(input, init),
@@ -74,7 +80,8 @@ const waitForRefresh = async (
 export const createBaseQueryWithReauth = (): BaseQueryFn<
   string | FetchArgs,
   unknown,
-  FetchBaseQueryError
+  FetchBaseQueryError,
+  TReauthOptions
 > => {
   // Middleware разных store не делят запрос обновления (в том числе в тестах).
   const refreshes = new WeakMap<
@@ -86,10 +93,7 @@ export const createBaseQueryWithReauth = (): BaseQueryFn<
     // Версия связывает запрос и общий refresh с сессией, в которой они начались.
     // После смены сессии их результат не должен сохранять токены или завершать новую.
     const version = versionOf(api);
-    const authorized =
-      api.endpoint === 'getCurrentUser' ||
-      api.endpoint === 'updateCurrentUser' ||
-      api.endpoint === 'createOrder';
+    const authorized = extraOptions?.auth === true;
     const isCurrent = (): boolean =>
       !api.signal.aborted && (!authorized || versionOf(api) === version);
     try {
@@ -100,7 +104,7 @@ export const createBaseQueryWithReauth = (): BaseQueryFn<
         extraOptions
       );
       if (!isCurrent()) return cancelled();
-      if (!needsTokenRefresh(api.endpoint, tokens?.accessToken, result.error))
+      if (!needsTokenRefresh(authorized, tokens?.accessToken, result.error))
         return result;
       const latestTokens = readTokens();
       if (!latestTokens) {

@@ -37,29 +37,26 @@ describe('правила доступа и хранения сессии', () =>
   afterEach(() => vi.restoreAllMocks());
 
   it.each([401, 403])(
-    'обновляет токен только для авторизованных запросов пользователя/заказа (%s)',
+    'обновляет токен только при включённой политике и отправленном токене (%s)',
     (status) => {
       const error = { status, data: { message: 'Любой текст' } };
-      for (const endpoint of ['getCurrentUser', 'updateCurrentUser', 'createOrder']) {
-        expect(needsTokenRefresh(endpoint, 'Bearer test', error)).toBe(true);
-        expect(needsTokenRefresh(endpoint, undefined, error)).toBe(false);
-      }
-      for (const endpoint of ['login', 'register', 'logout', 'getIngredients'])
-        expect(needsTokenRefresh(endpoint, 'Bearer test', error)).toBe(false);
+      expect(needsTokenRefresh(true, 'Bearer test', error)).toBe(true);
+      expect(needsTokenRefresh(true, undefined, error)).toBe(false);
+      expect(needsTokenRefresh(false, 'Bearer test', error)).toBe(false);
+      expect(needsTokenRefresh(false, undefined, error)).toBe(false);
     }
   );
 
   it('не обновляет токен при сетевых, серверных ошибках и некорректном HTTP 200', () => {
     for (const status of [200, 400, 500])
-      expect(
-        needsTokenRefresh('getCurrentUser', 'Bearer test', { status, data: null })
-      ).toBe(false);
+      expect(needsTokenRefresh(true, 'Bearer test', { status, data: null })).toBe(false);
     expect(
-      needsTokenRefresh('getCurrentUser', 'Bearer test', {
+      needsTokenRefresh(true, 'Bearer test', {
         status: 'FETCH_ERROR',
         error: 'Ошибка',
       })
     ).toBe(false);
+    expect(needsTokenRefresh(true, 'Bearer test', undefined)).toBe(false);
   });
 
   it('сохраняет только пару токенов и очищает неполную пару', () => {

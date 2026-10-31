@@ -19,6 +19,26 @@ const user = { name: 'Тест', email: 'test@example.test' };
 const tokens = { accessToken: 'Bearer old', refreshToken: 'old-refresh' };
 const renewed = { accessToken: 'Bearer new', refreshToken: 'new-refresh' };
 const authResponse = { success: true as const, user, ...tokens };
+// Только тестовые endpoint: одинаковый URL позволяет проверить выбор политики по опциям.
+const policyTestApi = burgerApi.injectEndpoints({
+  endpoints: (builder) => ({
+    policyEnabledProbe: builder.mutation<unknown, { value: string }>({
+      query: (body) => ({ url: 'policy-probe', method: 'POST', body }),
+      extraOptions: { auth: true },
+    }),
+    policyDisabledProbe: builder.mutation<unknown, { value: string }>({
+      query: (body) => ({ url: 'policy-probe', method: 'POST', body }),
+      extraOptions: { auth: false },
+    }),
+    policyDefaultProbe: builder.mutation<unknown, { value: string }>({
+      query: (body) => ({ url: 'policy-probe', method: 'POST', body }),
+    }),
+    policyEmptyProbe: builder.mutation<unknown, { value: string }>({
+      query: (body) => ({ url: 'policy-probe', method: 'POST', body }),
+      extraOptions: {},
+    }),
+  }),
+});
 const json = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), {
     status,
@@ -56,6 +76,99 @@ describe('API и жизненный цикл сессии', () => {
     vi.unstubAllGlobals();
     vi.useRealTimers();
   });
+
+  it.each([401, 403])(
+    'произвольное имя endpoint использует auth и refresh после %s',
+    async (status) => {
+      saveTokens(tokens);
+      respond = (request): Response =>
+        request.url.endsWith('auth/token')
+          ? json({ success: true, ...renewed })
+          : request.headers.get('authorization') === tokens.accessToken
+            ? json({}, status)
+            : json({ success: true });
+      const body = { value: 'fixture' };
+      await app
+        .dispatch(policyTestApi.endpoints.policyEnabledProbe.initiate(body))
+        .unwrap();
+      expect(requests).toHaveLength(3);
+      for (const index of [0, 2]) {
+        expect(requests[index].url).toBe(
+          'https://new-stellarburgers.education-services.ru/api/policy-probe'
+        );
+        expect(requests[index].method).toBe('POST');
+        expect(await requests[index].json()).toEqual(body);
+        expect(requests[index].headers.has('auth')).toBe(false);
+      }
+      expect(requests[0].headers.get('authorization')).toBe(tokens.accessToken);
+      expect(requests[2].headers.get('authorization')).toBe(renewed.accessToken);
+      expect(await requests[1].json()).toEqual({ token: tokens.refreshToken });
+      expect(requests[1].headers.get('authorization')).toBeNull();
+    }
+  );
+
+  describe.each([401, 403])('публичная политика после HTTP %s', (status) => {
+    it.each(['policyDisabledProbe', 'policyDefaultProbe', 'policyEmptyProbe'] as const)(
+      '%s не добавляет токен и не запускает refresh',
+      async (endpoint) => {
+        saveTokens(tokens);
+        const auth = app.getState().auth;
+        respond = (): Response => json({}, status);
+        const body = { value: 'fixture' };
+        await expect(
+          app.dispatch(policyTestApi.endpoints[endpoint].initiate(body)).unwrap()
+        ).rejects.toBeDefined();
+        expect(requests).toHaveLength(1);
+        expect(requests[0].url).toBe(
+          'https://new-stellarburgers.education-services.ru/api/policy-probe'
+        );
+        expect(requests[0].headers.get('authorization')).toBeNull();
+        expect(await requests[0].json()).toEqual(body);
+        expect(readTokens()).toEqual(tokens);
+        expect(app.getState().auth).toEqual(auth);
+      }
+    );
+  });
+
+  describe.each([401, 403])(
+    'публичные методы при сохранённых токенах и HTTP %s',
+    (status) => {
+      it.each(['login', 'register', 'logout', 'getIngredients'] as const)(
+        '%s не передаёт access-токен и не обновляет сессию',
+        async (endpoint) => {
+          saveTokens(tokens);
+          app.dispatch(sessionEstablished(user));
+          const auth = app.getState().auth;
+          respond = (): Response => json({}, status);
+          const request =
+            endpoint === 'login'
+              ? app.dispatch(
+                  burgerApi.endpoints.login.initiate({
+                    email: user.email,
+                    password: 'fixture',
+                  })
+                )
+              : endpoint === 'register'
+                ? app.dispatch(
+                    burgerApi.endpoints.register.initiate({
+                      ...user,
+                      password: 'fixture',
+                    })
+                  )
+                : endpoint === 'logout'
+                  ? app.dispatch(
+                      burgerApi.endpoints.logout.initiate({ token: tokens.refreshToken })
+                    )
+                  : app.dispatch(burgerApi.endpoints.getIngredients.initiate());
+          await expect(request.unwrap()).rejects.toBeDefined();
+          expect(requests).toHaveLength(1);
+          expect(requests[0].headers.get('authorization')).toBeNull();
+          expect(readTokens()).toEqual(tokens);
+          expect(app.getState().auth).toEqual(auth);
+        }
+      );
+    }
+  );
 
   it.each(['', 'x'])('PATCH передаёт все поля и токен, пароль=%j', async (password) => {
     saveTokens(tokens);
@@ -290,6 +403,7 @@ describe('API и жизненный цикл сессии', () => {
   });
 
   it('вход и регистрация используют правильные методы, тела и не запускают refresh', async () => {
+    saveTokens(tokens);
     respond = (): Response | Promise<Response> => json(authResponse);
     await app
       .dispatch(
@@ -452,10 +566,12 @@ describe('API и жизненный цикл сессии', () => {
   });
 
   it('не отменяет публичный каталог при смене поколения сессии', async () => {
+    saveTokens(tokens);
     const loading = deferred<Response>();
     respond = (): Promise<Response> => loading.promise;
     const query = app.dispatch(burgerApi.endpoints.getIngredients.initiate());
     await vi.waitFor(() => expect(requests).toHaveLength(1));
+    expect(requests[0].headers.get('authorization')).toBeNull();
     app.dispatch(sessionEstablished(user));
     loading.resolve(
       json({
@@ -527,6 +643,7 @@ describe('API и жизненный цикл сессии', () => {
     expect(results).toEqual([true, false]);
     expect(requests).toHaveLength(1);
     expect(await requests[0].json()).toEqual({ token: tokens.refreshToken });
+    expect(requests[0].headers.get('authorization')).toBeNull();
     expect(readTokens()).toBeNull();
     expect(app.getState().auth.user).toBeNull();
   });
