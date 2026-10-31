@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import { App } from '@components/app/app';
 import { IngredientModalRoute } from '@components/ingredient-modal-route/ingredient-modal-route';
 import { ProfileLayout } from '@components/profile-layout/profile-layout';
+import { ProtectedRoute } from '@components/protected-route/protected-route';
 import { FeedPage } from '@pages/feed/feed';
 import { ForgotPasswordPage } from '@pages/forgot-password/forgot-password';
 import { Home } from '@pages/home/home';
@@ -31,16 +32,21 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        path: 'profile',
-        element: <ProfileLayout />,
+        element: <ProtectedRoute />,
         children: [
           {
-            index: true,
-            element: <ProfilePage />,
-          },
-          {
-            path: 'orders',
-            element: <ProfileOrderPage />,
+            path: 'profile',
+            element: <ProfileLayout />,
+            children: [
+              {
+                index: true,
+                element: <ProfilePage />,
+              },
+              {
+                path: 'orders',
+                element: <ProfileOrderPage />,
+              },
+            ],
           },
         ],
       },
@@ -49,20 +55,25 @@ export const router = createBrowserRouter([
         element: <FeedPage />,
       },
       {
-        path: 'login',
-        element: <LoginPage />,
-      },
-      {
-        path: 'register',
-        element: <RegisterPage />,
-      },
-      {
-        path: 'forgot-password',
-        element: <ForgotPasswordPage />,
-      },
-      {
-        path: 'reset-password',
-        element: <ResetPasswordPage />,
+        element: <ProtectedRoute onlyGuest />,
+        children: [
+          {
+            path: 'login',
+            element: <LoginPage />,
+          },
+          {
+            path: 'register',
+            element: <RegisterPage />,
+          },
+          {
+            path: 'forgot-password',
+            element: <ForgotPasswordPage />,
+          },
+          {
+            path: 'reset-password',
+            element: <ResetPasswordPage />,
+          },
+        ],
       },
       {
         path: '*',

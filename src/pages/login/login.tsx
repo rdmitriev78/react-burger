@@ -1,6 +1,9 @@
 import { Button, EmailInput, Input } from '@krgaa/react-developer-burger-ui-components';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+
+import { useAuthSubmission } from '@hooks/use-auth-submission';
+import { useLoginMutation } from '@services/api/burger-api';
 
 import type { ChangeEvent, FormEvent } from 'react';
 
@@ -9,6 +12,12 @@ import styles from './login.module.css';
 export const LoginPage = (): React.JSX.Element => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const location = useLocation();
+  const [login, { isLoading }] = useLoginMutation();
+  const { error, submit } = useAuthSubmission(
+    (values: typeof form) => login(values).unwrap(),
+    'Не удалось войти. Проверьте данные и повторите попытку.'
+  );
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = event.target;
@@ -16,8 +25,8 @@ export const LoginPage = (): React.JSX.Element => {
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
-    // Отправка данных будет добавлена при подключении API авторизации.
     event.preventDefault();
+    void submit(form);
   };
 
   return (
@@ -26,6 +35,7 @@ export const LoginPage = (): React.JSX.Element => {
         className={styles.form}
         onSubmit={handleSubmit}
         aria-labelledby="login-title"
+        aria-busy={isLoading}
       >
         <h1 id="login-title" className="text text_type_main-medium">
           Вход
@@ -53,18 +63,24 @@ export const LoginPage = (): React.JSX.Element => {
           required
         />
         <Button
+          disabled={isLoading}
           htmlType="submit"
           type="primary"
           size="medium"
           extraClass={styles.submit}
         >
-          Войти
+          {isLoading ? 'Входим…' : 'Войти'}
         </Button>
+        {error && (
+          <p role="alert" className="text text_type_main-default">
+            {error}
+          </p>
+        )}
       </form>
       <div className={`${styles.actions} mt-20`}>
         <p className="text text_type_main-default text_color_inactive">
           Вы — новый пользователь?{' '}
-          <Link to="/register" className={styles.link}>
+          <Link to="/register" state={location.state as unknown} className={styles.link}>
             Зарегистрироваться
           </Link>
         </p>

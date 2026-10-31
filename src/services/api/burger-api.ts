@@ -1,6 +1,16 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
+
+import { isAuthResponse, isObject, isUserResponse } from '@services/auth/auth.types';
+
+import { createBaseQueryWithReauth } from './base-query-with-reauth';
 
 import type { TIngredient } from '@app-types/ingredient';
+import type {
+  TAuthResponse,
+  TCredentials,
+  TRegistration,
+  TUserResponse,
+} from '@services/auth/auth.types';
 
 type TCreateOrderRequest = {
   ingredients: string[];
@@ -16,11 +26,6 @@ type TIngredientsResponse = {
   success: boolean;
   data: TIngredient[];
 };
-
-const burgerApiBaseUrl = 'https://new-stellarburgers.education-services.ru/api/';
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
 
 // Проверяем только оболочку ответа и наличие ингредиентов.
 // Поля элементов data не проверяем: доверяем учебному API.
@@ -42,10 +47,46 @@ const isCreateOrderResponseValid = (body: unknown): body is TCreateOrderResponse
 
 export const burgerApi = createApi({
   reducerPath: 'burgerApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: burgerApiBaseUrl,
-  }),
+  baseQuery: createBaseQueryWithReauth(),
   endpoints: (builder) => ({
+    login: builder.mutation<TAuthResponse, TCredentials>({
+      query: (body) => ({
+        url: 'auth/login',
+        method: 'POST',
+        body,
+        validateStatus: (response, data: unknown): boolean =>
+          response.ok && isAuthResponse(data),
+      }),
+    }),
+    register: builder.mutation<TAuthResponse, TRegistration>({
+      query: (body) => ({
+        url: 'auth/register',
+        method: 'POST',
+        body,
+        validateStatus: (response, data: unknown): boolean =>
+          response.ok && isAuthResponse(data),
+      }),
+    }),
+    logout: builder.mutation<{ success: true; message: string }, { token: string }>({
+      query: (body) => ({
+        url: 'auth/logout',
+        method: 'POST',
+        body,
+        validateStatus: (response, data: unknown): boolean =>
+          response.ok &&
+          isObject(data) &&
+          data.success === true &&
+          typeof data.message === 'string',
+      }),
+    }),
+    getCurrentUser: builder.query<TUserResponse, void>({
+      keepUnusedDataFor: 0,
+      query: () => ({
+        url: 'auth/user',
+        validateStatus: (response, data: unknown): boolean =>
+          response.ok && isUserResponse(data),
+      }),
+    }),
     createOrder: builder.mutation<TCreateOrderResponse, TCreateOrderRequest>({
       query: (body) => ({
         url: 'orders',
@@ -67,4 +108,5 @@ export const burgerApi = createApi({
   }),
 });
 
-export const { useGetIngredientsQuery } = burgerApi;
+export const { useGetIngredientsQuery, useLoginMutation, useRegisterMutation } =
+  burgerApi;

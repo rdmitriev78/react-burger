@@ -3,12 +3,18 @@ import { Outlet } from 'react-router-dom';
 
 import { AppHeader } from '@components/app-header/app-header';
 import { AppModals } from '@components/app-modals/app-modals';
+import { useAppDispatch } from '@hooks/redux';
 import { useOrderSubmission } from '@hooks/use-order-submission';
+import { checkSession } from '@services/auth/auth-thunks';
 
 import styles from './app.module.css';
 
 export const App = (): React.JSX.Element => {
   const { stopWaiting } = useOrderSubmission();
+  const dispatch = useAppDispatch();
+  useEffect(() => {
+    void dispatch(checkSession());
+  }, [dispatch]);
   const constructorLinkRef = useRef<HTMLAnchorElement>(null);
 
   // Отменяем ожидание только при размонтировании приложения, а не отдельных потребителей хука.

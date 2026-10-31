@@ -1,6 +1,9 @@
 import { Button, EmailInput, Input } from '@krgaa/react-developer-burger-ui-components';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+
+import { useAuthSubmission } from '@hooks/use-auth-submission';
+import { useRegisterMutation } from '@services/api/burger-api';
 
 import type { ChangeEvent, FormEvent } from 'react';
 
@@ -9,6 +12,12 @@ import styles from './register.module.css';
 export const RegisterPage = (): React.JSX.Element => {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const location = useLocation();
+  const [register, { isLoading }] = useRegisterMutation();
+  const { error, submit } = useAuthSubmission(
+    (values: typeof form) => register(values).unwrap(),
+    'Не удалось зарегистрироваться. Проверьте данные и повторите попытку.'
+  );
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = event.target;
@@ -16,8 +25,8 @@ export const RegisterPage = (): React.JSX.Element => {
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
-    // Отправка данных будет добавлена при подключении API авторизации.
     event.preventDefault();
+    void submit(form);
   };
 
   return (
@@ -26,6 +35,7 @@ export const RegisterPage = (): React.JSX.Element => {
         className={styles.form}
         onSubmit={handleSubmit}
         aria-labelledby="register-title"
+        aria-busy={isLoading}
       >
         <h1 id="register-title" className="text text_type_main-medium">
           Регистрация
@@ -60,23 +70,28 @@ export const RegisterPage = (): React.JSX.Element => {
           onChange={handleChange}
           icon={isPasswordVisible ? 'HideIcon' : 'ShowIcon'}
           onIconClick={() => setIsPasswordVisible((visible) => !visible)}
-          minLength={6}
           required
         />
         <Button
+          disabled={isLoading}
           htmlType="submit"
           type="primary"
           size="medium"
           extraClass={styles.submit}
         >
-          Зарегистрироваться
+          {isLoading ? 'Регистрируем…' : 'Зарегистрироваться'}
         </Button>
+        {error && (
+          <p role="alert" className="text text_type_main-default">
+            {error}
+          </p>
+        )}
       </form>
       <p
         className={`${styles.actions} text text_type_main-default text_color_inactive mt-20`}
       >
         Уже зарегистрированы?{' '}
-        <Link to="/login" className={styles.link}>
+        <Link to="/login" state={location.state as unknown} className={styles.link}>
           Войти
         </Link>
       </p>

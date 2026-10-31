@@ -1,6 +1,9 @@
 import { Input } from '@krgaa/react-developer-burger-ui-components';
 import { useRef, useState } from 'react';
 
+import { useAppSelector } from '@hooks/redux';
+import { selectAuth } from '@services/auth/auth-slice';
+
 import type { ChangeEvent, FormEvent } from 'react';
 
 import styles from './profile.module.css';
@@ -20,9 +23,10 @@ const fields: { name: TProfileField; label: string; autoComplete: string }[] = [
 ];
 
 export const ProfilePage = (): React.JSX.Element => {
+  const { user } = useAppSelector(selectAuth);
   const [form, setForm] = useState<TProfileForm>({
-    name: '',
-    email: '',
+    name: user?.name ?? '',
+    email: user?.email ?? '',
     password: '',
   });
   const [editingField, setEditingField] = useState<TProfileField | null>(null);
