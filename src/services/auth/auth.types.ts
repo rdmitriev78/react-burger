@@ -1,6 +1,7 @@
 export type TUser = { name: string; email: string };
 export type TCredentials = { email: string; password: string };
 export type TRegistration = TCredentials & { name: string };
+export type TUserUpdate = TUser & { password: string };
 export type TTokens = { accessToken: string; refreshToken: string };
 export type TAuthResponse = TTokens & { success: true; user: TUser };
 export type TUserResponse = { success: true; user: TUser };

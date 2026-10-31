@@ -11,6 +11,7 @@ import type {
   TCredentials,
   TRegistration,
   TUserResponse,
+  TUserUpdate,
 } from '@services/auth/auth.types';
 import type {
   TPasswordRecoveryResponse,
@@ -110,6 +111,15 @@ export const burgerApi = createApi({
       keepUnusedDataFor: 0,
       query: () => ({
         url: 'auth/user',
+        validateStatus: (response, data: unknown): boolean =>
+          response.ok && isUserResponse(data),
+      }),
+    }),
+    updateCurrentUser: builder.mutation<TUserResponse, TUserUpdate>({
+      query: (body) => ({
+        url: 'auth/user',
+        method: 'PATCH',
+        body,
         validateStatus: (response, data: unknown): boolean =>
           response.ok && isUserResponse(data),
       }),

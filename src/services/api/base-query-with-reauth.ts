@@ -87,7 +87,9 @@ export const createBaseQueryWithReauth = (): BaseQueryFn<
     // После смены сессии их результат не должен сохранять токены или завершать новую.
     const version = versionOf(api);
     const authorized =
-      api.endpoint === 'getCurrentUser' || api.endpoint === 'createOrder';
+      api.endpoint === 'getCurrentUser' ||
+      api.endpoint === 'updateCurrentUser' ||
+      api.endpoint === 'createOrder';
     const isCurrent = (): boolean =>
       !api.signal.aborted && (!authorized || versionOf(api) === version);
     try {

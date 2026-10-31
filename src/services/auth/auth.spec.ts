@@ -8,11 +8,28 @@ import {
   sessionEnded,
   sessionEstablished,
   sessionFailed,
+  userUpdated,
 } from './auth-slice';
 import { createTestStorage } from './auth-test-utils';
 import { clearTokens, readTokens, saveTokens } from './token-storage';
 
 describe('правила доступа и хранения сессии', () => {
+  it('обновляет только пользователя действующей сессии', () => {
+    const user = { name: 'Тест', email: 'test@example.test' };
+    const initial = authSlice.reducer(undefined, sessionEstablished(user));
+    const updated = authSlice.reducer(
+      initial,
+      userUpdated({ user: { ...user, name: 'Новое' }, version: initial.version })
+    );
+    expect(updated).toEqual({ ...initial, user: { ...user, name: 'Новое' } });
+    expect(
+      authSlice.reducer(initial, userUpdated({ user, version: initial.version - 1 }))
+    ).toBe(initial);
+    const ended = authSlice.reducer(updated, sessionEnded());
+    expect(authSlice.reducer(ended, userUpdated({ user, version: ended.version }))).toBe(
+      ended
+    );
+  });
   beforeEach(() => {
     vi.stubGlobal('localStorage', createTestStorage());
     localStorage.clear();
@@ -23,7 +40,7 @@ describe('правила доступа и хранения сессии', () =>
     'обновляет токен только для авторизованных запросов пользователя/заказа (%s)',
     (status) => {
       const error = { status, data: { message: 'Любой текст' } };
-      for (const endpoint of ['getCurrentUser', 'createOrder']) {
+      for (const endpoint of ['getCurrentUser', 'updateCurrentUser', 'createOrder']) {
         expect(needsTokenRefresh(endpoint, 'Bearer test', error)).toBe(true);
         expect(needsTokenRefresh(endpoint, undefined, error)).toBe(false);
       }

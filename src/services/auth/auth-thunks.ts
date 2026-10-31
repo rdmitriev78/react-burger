@@ -9,6 +9,7 @@ import {
   sessionEnded,
   sessionEstablished,
   sessionFailed,
+  userUpdated,
 } from './auth-slice';
 import {
   clearTokens,
@@ -17,7 +18,7 @@ import {
   storageErrorMessage,
 } from './token-storage';
 
-import type { TAuthResponse } from './auth.types';
+import type { TAuthResponse, TUser, TUserUpdate } from './auth.types';
 import type { AppThunk } from '@services/store';
 
 export const establishSession =
@@ -27,6 +28,42 @@ export const establishSession =
       throw new Error('Сессия уже изменилась');
     saveTokens(response);
     dispatch(sessionEstablished(response.user));
+  };
+
+// Ключ разделяет операции разных сессий; он не используется как React key формы.
+export const profileSubmissionCacheKey = (version: number): string =>
+  `profile-submission-${version}`;
+
+export const saveProfile =
+  (values: TUserUpdate): AppThunk<Promise<TUser | undefined>> =>
+  async (dispatch, getState): Promise<TUser | undefined> => {
+    const { version, status } = selectAuth(getState());
+    if (status !== 'authenticated') return;
+    const fixedCacheKey = profileSubmissionCacheKey(version);
+    if (
+      dispatch(
+        burgerApi.util.getRunningMutationThunk('updateCurrentUser', fixedCacheKey)
+      )
+    )
+      return;
+
+    // Операция принадлежит сессии, а не странице: уход не отменяет PATCH.
+    const request = dispatch(
+      burgerApi.endpoints.updateCurrentUser.initiate(values, { fixedCacheKey })
+    );
+    try {
+      // unwrap завершается раньше реестра running-мутаций RTK Query.
+      // Ждём и внешний Promise, чтобы сразу после результата разрешить новую отправку.
+      await request;
+      const response = await request.unwrap();
+      const current = selectAuth(getState());
+      if (current.version !== version || current.status !== 'authenticated') return;
+      const confirmedUser = { name: response.user.name, email: response.user.email };
+      dispatch(userUpdated({ user: confirmedUser, version }));
+      return confirmedUser;
+    } finally {
+      request.reset();
+    }
   };
 
 export const checkSession =

@@ -44,6 +44,14 @@ export const authSlice = createSlice({
       state.message = '';
       state.isLoggingOut = false;
     },
+    userUpdated: (
+      state,
+      { payload }: PayloadAction<{ user: TUser; version: number }>
+    ): void => {
+      // Сохранение профиля не создаёт сессию и не принимает ответ прежнего пользователя.
+      if (state.version !== payload.version || state.status !== 'authenticated') return;
+      state.user = payload.user;
+    },
     sessionEnded: (state): void => {
       state.version += 1;
       state.status = 'anonymous';
@@ -76,6 +84,7 @@ export const {
   sessionEstablished,
   sessionEnded,
   sessionFailed,
+  userUpdated,
   logoutStarted,
   logoutFinished,
 } = authSlice.actions;

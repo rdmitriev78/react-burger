@@ -6,7 +6,13 @@ import { createTestStore } from '@services/store-test-utils';
 
 import { sessionEnded, sessionEstablished } from './auth-slice';
 import { createTestStorage } from './auth-test-utils';
-import { checkSession, establishSession, logout } from './auth-thunks';
+import {
+  checkSession,
+  establishSession,
+  logout,
+  profileSubmissionCacheKey,
+  saveProfile,
+} from './auth-thunks';
 import { clearTokens, readTokens, saveTokens } from './token-storage';
 
 const user = { name: 'Тест', email: 'test@example.test' };
@@ -49,6 +55,238 @@ describe('API и жизненный цикл сессии', () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.useRealTimers();
+  });
+
+  it.each(['', 'x'])('PATCH передаёт все поля и токен, пароль=%j', async (password) => {
+    saveTokens(tokens);
+    const body = { ...user, password };
+    expect(
+      await app.dispatch(burgerApi.endpoints.updateCurrentUser.initiate(body)).unwrap()
+    ).toEqual({ success: true, user });
+    expect(requests).toHaveLength(1);
+    expect(new URL(requests[0].url).pathname).toBe('/api/auth/user');
+    expect(requests[0].method).toBe('PATCH');
+    expect(requests[0].headers.get('authorization')).toBe(tokens.accessToken);
+    expect(await requests[0].json()).toEqual(body);
+  });
+
+  it.each([
+    { success: false, user },
+    { success: true },
+    { success: true, user: { name: 'Имя', email: null } },
+  ])('PATCH отклоняет некорректный ответ %j без повтора', async (body) => {
+    saveTokens(tokens);
+    respond = (): Response => json(body);
+    await expect(
+      app
+        .dispatch(
+          burgerApi.endpoints.updateCurrentUser.initiate({ ...user, password: '' })
+        )
+        .unwrap()
+    ).rejects.toBeDefined();
+    expect(requests).toHaveLength(1);
+    expect(readTokens()).toEqual(tokens);
+  });
+
+  it.each([401, 403])(
+    'PATCH обновляет токены после %s и повторяет то же тело один раз',
+    async (status) => {
+      saveTokens(tokens);
+      const body = { ...user, password: 'x' };
+      respond = (request): Response =>
+        request.url.endsWith('auth/token')
+          ? json({ success: true, ...renewed })
+          : request.headers.get('authorization') === tokens.accessToken
+            ? json({}, status)
+            : json({ success: true, user });
+      await app.dispatch(burgerApi.endpoints.updateCurrentUser.initiate(body)).unwrap();
+      expect(requests.map((request) => request.method)).toEqual([
+        'PATCH',
+        'POST',
+        'PATCH',
+      ]);
+      expect(await requests[0].json()).toEqual(body);
+      expect(await requests[1].json()).toEqual({ token: tokens.refreshToken });
+      expect(await requests[2].json()).toEqual(body);
+      expect(requests[2].headers.get('authorization')).toBe(renewed.accessToken);
+      expect(readTokens()).toEqual(renewed);
+    }
+  );
+
+  it.each(['refresh', 'retry'])(
+    'PATCH завершает сессию при отказе %s',
+    async (stage) => {
+      saveTokens(tokens);
+      app.dispatch(sessionEstablished(user));
+      respond = (request): Response =>
+        request.url.endsWith('auth/token') && stage === 'retry'
+          ? json({ success: true, ...renewed })
+          : json({}, 403);
+      await expect(
+        app
+          .dispatch(
+            burgerApi.endpoints.updateCurrentUser.initiate({ ...user, password: '' })
+          )
+          .unwrap()
+      ).rejects.toBeDefined();
+      expect(requests).toHaveLength(stage === 'refresh' ? 2 : 3);
+      expect(app.getState().auth.status).toBe('anonymous');
+      expect(readTokens()).toBeNull();
+    }
+  );
+
+  it.each(['network', 'server'])(
+    'PATCH не повторяет обычную ошибку %s',
+    async (kind) => {
+      saveTokens(tokens);
+      app.dispatch(sessionEstablished(user));
+      respond = (): Response => {
+        if (kind === 'network') throw new TypeError('Offline');
+        return json({}, 500);
+      };
+      await expect(
+        app
+          .dispatch(
+            burgerApi.endpoints.updateCurrentUser.initiate({ ...user, password: '' })
+          )
+          .unwrap()
+      ).rejects.toBeDefined();
+      expect(requests).toHaveLength(1);
+      expect(readTokens()).toEqual(tokens);
+      expect(app.getState().auth.status).toBe('authenticated');
+    }
+  );
+
+  it('PATCH, GET пользователя и заказ разделяют один refresh', async () => {
+    saveTokens(tokens);
+    const refreshing = deferred<Response>();
+    respond = (request): Response | Promise<Response> => {
+      if (request.url.endsWith('auth/token')) return refreshing.promise;
+      if (request.headers.get('authorization') === tokens.accessToken)
+        return json({}, 401);
+      return request.url.endsWith('/orders')
+        ? json({ success: true, name: 'Бургер', order: { number: 12 } })
+        : json({ success: true, user });
+    };
+    const patch = app.dispatch(
+      burgerApi.endpoints.updateCurrentUser.initiate({ ...user, password: '' })
+    );
+    const get = app.dispatch(burgerApi.endpoints.getCurrentUser.initiate());
+    const order = app.dispatch(
+      burgerApi.endpoints.createOrder.initiate({ ingredients: ['bun'] })
+    );
+    await vi.waitFor(() => expect(requests).toHaveLength(4));
+    expect(
+      requests.filter((request) => request.url.endsWith('auth/token'))
+    ).toHaveLength(1);
+    refreshing.resolve(json({ success: true, ...renewed }));
+    await Promise.all([patch.unwrap(), get.unwrap(), order.unwrap()]);
+    expect(requests).toHaveLength(7);
+    expect(
+      requests.filter((request) => request.url.endsWith('auth/token'))
+    ).toHaveLength(1);
+  });
+
+  it('сохраняет пользователя из ответа без смены сессии и освобождает мутацию', async () => {
+    saveTokens(tokens);
+    app.dispatch(sessionEstablished(user));
+    const version = app.getState().auth.version;
+    const confirmed = { name: 'Подтверждённое', email: 'canonical@example.test' };
+    respond = (): Response => json({ success: true, user: confirmed });
+    expect(await app.dispatch(saveProfile({ ...user, password: 'x' }))).toEqual(
+      confirmed
+    );
+    expect(app.getState().auth).toMatchObject({
+      user: confirmed,
+      version,
+      status: 'authenticated',
+    });
+    expect(readTokens()).toEqual(tokens);
+    expect(Object.keys(app.getState().burgerApi.mutations)).toHaveLength(0);
+  });
+
+  it('блокирует синхронные дубликаты до ответа и позволяет следующее сохранение', async () => {
+    saveTokens(tokens);
+    app.dispatch(sessionEstablished(user));
+    const saving = deferred<Response>();
+    respond = (): Promise<Response> => saving.promise;
+    const first = app.dispatch(saveProfile({ ...user, password: '' }));
+    expect(
+      await app.dispatch(saveProfile({ ...user, name: 'Дубликат', password: '' }))
+    ).toBeUndefined();
+    const select = burgerApi.endpoints.updateCurrentUser.select(
+      profileSubmissionCacheKey(app.getState().auth.version)
+    );
+    expect(select(app.getState()).isLoading).toBe(true);
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    saving.resolve(json({ success: true, user }));
+    await first;
+    expect(select(app.getState()).isUninitialized).toBe(true);
+    respond = (): Response => json({ success: true, user });
+    await app.dispatch(saveProfile({ ...user, password: '' }));
+    expect(requests).toHaveLength(2);
+  });
+
+  it.each([false, true])(
+    'игнорирует старый PATCH после выхода, новая сессия=%s',
+    async (newSession) => {
+      saveTokens(tokens);
+      app.dispatch(sessionEstablished(user));
+      const saving = deferred<Response>();
+      respond = (): Promise<Response> => saving.promise;
+      const first = app
+        .dispatch(saveProfile({ ...user, password: '' }))
+        .catch(() => undefined);
+      await vi.waitFor(() => expect(requests).toHaveLength(1));
+      app.dispatch(sessionEnded());
+      clearTokens();
+      const other = { name: 'Другой', email: 'other@example.test' };
+      let next: Promise<unknown> | undefined;
+      const nextSaving = deferred<Response>();
+      if (newSession) {
+        saveTokens(renewed);
+        app.dispatch(sessionEstablished(other));
+        respond = (): Promise<Response> => nextSaving.promise;
+        next = app.dispatch(saveProfile({ ...other, password: '' }));
+        await vi.waitFor(() => expect(requests).toHaveLength(2));
+      }
+      saving.resolve(json({ success: true, user: { ...user, name: 'Старый ответ' } }));
+      await first;
+      expect(app.getState().auth.user).toEqual(newSession ? other : null);
+      if (newSession) {
+        const select = burgerApi.endpoints.updateCurrentUser.select(
+          profileSubmissionCacheKey(app.getState().auth.version)
+        );
+        expect(select(app.getState()).isLoading).toBe(true);
+        nextSaving.resolve(
+          json({ success: true, user: { ...other, name: 'Новый ответ' } })
+        );
+        await next;
+        expect(app.getState().auth.user?.name).toBe('Новый ответ');
+        expect(readTokens()).toEqual(renewed);
+      }
+    }
+  );
+
+  it('ошибка сохранения оставляет пользователя и позволяет повтор', async () => {
+    saveTokens(tokens);
+    app.dispatch(sessionEstablished(user));
+    const before = app.getState().auth;
+    respond = (): Response => json({}, 500);
+    await expect(
+      app.dispatch(saveProfile({ ...user, password: '' }))
+    ).rejects.toBeDefined();
+    expect(app.getState().auth).toEqual(before);
+    expect(Object.keys(app.getState().burgerApi.mutations)).toHaveLength(0);
+    respond = (): Response => json({ success: true, user });
+    await expect(app.dispatch(saveProfile({ ...user, password: '' }))).resolves.toEqual(
+      user
+    );
+  });
+
+  it('не запускает сохранение без авторизованной сессии', async () => {
+    expect(await app.dispatch(saveProfile({ ...user, password: '' }))).toBeUndefined();
+    expect(requests).toHaveLength(0);
   });
 
   it('вход и регистрация используют правильные методы, тела и не запускают refresh', async () => {

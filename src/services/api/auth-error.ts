@@ -9,6 +9,8 @@ export const needsTokenRefresh = (
   accessToken: string | undefined,
   error: FetchBaseQueryError | undefined
 ): boolean =>
-  (endpoint === 'getCurrentUser' || endpoint === 'createOrder') &&
+  (endpoint === 'getCurrentUser' ||
+    endpoint === 'updateCurrentUser' ||
+    endpoint === 'createOrder') &&
   Boolean(accessToken) &&
   isAccessDenied(error);

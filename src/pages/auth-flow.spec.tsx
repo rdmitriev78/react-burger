@@ -139,6 +139,21 @@ describe('формы и защищённые маршруты', () => {
     await userEvent.type(screen.getByLabelText('Пароль'), 'test-password');
   };
 
+  const editProfileField = async (label: string): Promise<void> => {
+    const icon = screen
+      .getByLabelText(label)
+      .parentElement?.querySelector('.input__icon');
+    if (!icon) throw new Error(`Нет карандаша поля ${label}`);
+    await userEvent.click(icon);
+  };
+
+  const changeProfileField = (label: string, value: string): void => {
+    fireEvent.change(screen.getByLabelText(label), { target: { value } });
+  };
+
+  const profilePatchRequests = (): Request[] =>
+    requests.filter((request) => request.method === 'PATCH');
+
   it('возвращает с входа на вложенный профиль с query/hash и показывает пользователя', async () => {
     app.dispatch(sessionEnded());
     const router = mount('/profile?view=recent#fields');
@@ -350,13 +365,239 @@ describe('формы и защищённые маршруты', () => {
     expect(app.getState().auth.user).toBeNull();
   });
 
-  it('не отправляет локальные изменения профиля', () => {
+  it('карандаш включает режим формы, смена поля и blur сохраняют черновик и кнопки', async () => {
     app.dispatch(sessionEstablished(user));
     mount('/profile');
     expect(screen.getByLabelText('Имя')).toHaveValue(user.name);
-    fireEvent.change(screen.getByLabelText('Имя'), { target: { value: 'Черновик' } });
-    fireEvent.submit(screen.getByRole('form', { name: 'Профиль' }));
+    expect(screen.queryByRole('button', { name: 'Сохранить' })).not.toBeInTheDocument();
+    await editProfileField('Имя');
+    expect(screen.getByRole('button', { name: 'Сохранить' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Отмена' })).toBeVisible();
+    changeProfileField('Имя', 'Черновик');
+    await editProfileField('Логин');
+    expect(screen.getByLabelText('Имя')).toHaveValue('Черновик');
+    expect(screen.getByLabelText('Имя')).toHaveAttribute('readonly');
+    fireEvent.blur(screen.getByLabelText('Логин'));
+    expect(screen.getByLabelText('Логин')).toHaveAttribute('readonly');
+    await editProfileField('Имя');
+    changeProfileField('Имя', user.name);
+    expect(screen.getByRole('button', { name: 'Сохранить' })).toBeVisible();
     expect(requests).toHaveLength(0);
+  });
+
+  it('отмена сбрасывает все поля без запроса и завершает режим формы', async () => {
+    app.dispatch(sessionEstablished(user));
+    mount('/profile');
+    await editProfileField('Имя');
+    changeProfileField('Имя', 'Черновик');
+    await editProfileField('Логин');
+    changeProfileField('Логин', 'draft@example.test');
+    await editProfileField('Пароль');
+    changeProfileField('Пароль', 'x');
+    await userEvent.click(screen.getByRole('button', { name: 'Отмена' }));
+    expect(screen.getByLabelText('Имя')).toHaveValue(user.name);
+    expect(screen.getByLabelText('Логин')).toHaveValue(user.email);
+    expect(screen.getByLabelText('Пароль')).toHaveValue('');
+    expect(screen.getByLabelText('Пароль')).toHaveAttribute('readonly');
+    expect(screen.queryByRole('button', { name: 'Отмена' })).not.toBeInTheDocument();
+    expect(requests).toHaveLength(0);
+  });
+
+  it.each(['', 'x'])(
+    'сохраняет профиль из ответа, пароль=%j; следующая отмена использует новые значения',
+    async (password) => {
+      saveTokens(authResponse);
+      app.dispatch(sessionEstablished(user));
+      const router = mount('/profile');
+      const confirmed = { name: 'Серверное имя', email: 'canonical@example.test' };
+      respond = (): Response => json({ success: true, user: confirmed });
+      await editProfileField('Имя');
+      changeProfileField('Имя', 'Новое имя');
+      if (password) {
+        await editProfileField('Пароль');
+        changeProfileField('Пароль', password);
+      }
+      await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('button', { name: 'Сохранить' })
+        ).not.toBeInTheDocument()
+      );
+      expect(await profilePatchRequests()[0].json()).toEqual({
+        ...user,
+        name: 'Новое имя',
+        password,
+      });
+      expect(app.getState().auth.user).toEqual(confirmed);
+      expect(app.getState().auth.version).toBe(1);
+      expect(screen.getByLabelText('Имя')).toHaveValue(confirmed.name);
+      expect(screen.getByLabelText('Пароль')).toHaveValue('');
+      await editProfileField('Имя');
+      changeProfileField('Имя', 'Следующий черновик');
+      await userEvent.click(screen.getByRole('button', { name: 'Отмена' }));
+      expect(screen.getByLabelText('Имя')).toHaveValue(confirmed.name);
+      await act(() => router.navigate('/profile/orders'));
+      await act(() => router.navigate('/profile'));
+      expect(screen.getByLabelText('Логин')).toHaveValue(confirmed.email);
+      expect(screen.getByLabelText('Пароль')).toHaveValue('');
+      expect(profilePatchRequests()).toHaveLength(1);
+    }
+  );
+
+  it.each([false, true])(
+    'отправляет неизменённые значения, ручной возврат=%s',
+    async (revert) => {
+      saveTokens(authResponse);
+      app.dispatch(sessionEstablished(user));
+      mount('/profile');
+      await editProfileField('Имя');
+      if (revert) {
+        changeProfileField('Имя', 'Черновик');
+        changeProfileField('Имя', user.name);
+      }
+      await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
+      await waitFor(() => expect(profilePatchRequests()).toHaveLength(1));
+      expect(await profilePatchRequests()[0].json()).toEqual({ ...user, password: '' });
+    }
+  );
+
+  it('ошибка сохраняет черновик и пароль без фокуса; повтор очищает ошибку, отмена удаляет черновик', async () => {
+    saveTokens(authResponse);
+    app.dispatch(sessionEstablished(user));
+    mount('/profile');
+    respond = (): Response => json({}, 500);
+    await editProfileField('Имя');
+    changeProfileField('Имя', 'Черновик');
+    await editProfileField('Пароль');
+    changeProfileField('Пароль', 'x');
+    await userEvent.keyboard('{Enter}');
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(
+      'Не удалось сохранить изменения. Повторите попытку.'
+    );
+    expect(alert).not.toHaveFocus();
+    expect(alert).not.toHaveAttribute('tabindex');
+    expect(screen.getByLabelText('Имя')).toHaveValue('Черновик');
+    expect(screen.getByLabelText('Пароль')).toHaveValue('x');
+    expect(app.getState().auth.user).toEqual(user);
+    let finish!: (response: Response) => void;
+    respond = (): Promise<Response> =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await waitFor(() => expect(profilePatchRequests()).toHaveLength(2));
+    await act(async () => {
+      finish(json({ success: false }));
+      await Promise.resolve();
+    });
+    await screen.findByRole('alert');
+    await userEvent.click(screen.getByRole('button', { name: 'Отмена' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Пароль')).toHaveValue('');
+    expect(screen.getByLabelText('Имя')).toHaveValue(user.name);
+  });
+
+  it('блокирует поля, карандаши, обе кнопки и быстрые повторные submit', async () => {
+    saveTokens(authResponse);
+    app.dispatch(sessionEstablished(user));
+    mount('/profile');
+    let finish!: (response: Response) => void;
+    respond = (): Promise<Response> =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    await editProfileField('Имя');
+    changeProfileField('Имя', 'Черновик');
+    const form = screen.getByRole('form', { name: 'Профиль' });
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+    await waitFor(() => expect(profilePatchRequests()).toHaveLength(1));
+    expect(form).toHaveAttribute('aria-busy', 'true');
+    for (const label of ['Имя', 'Логин', 'Пароль'])
+      expect(screen.getByLabelText(label)).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Отмена' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Сохраняем…' })).toBeDisabled();
+    await editProfileField('Логин');
+    fireEvent.click(screen.getByRole('button', { name: 'Отмена' }));
+    expect(screen.getByLabelText('Имя')).toHaveValue('Черновик');
+    await act(async () => {
+      finish(json({}, 500));
+      await Promise.resolve();
+    });
+    await screen.findByRole('alert');
+    expect(screen.getByRole('button', { name: 'Отмена' })).toBeEnabled();
+    expect(screen.getByLabelText('Имя')).toBeEnabled();
+  });
+
+  it.each([false, true])(
+    'уход не отменяет PATCH, возврат до ответа=%s',
+    async (reopenBeforeResponse) => {
+      saveTokens(authResponse);
+      app.dispatch(sessionEstablished(user));
+      const router = mount('/profile');
+      let finish!: (response: Response) => void;
+      respond = (): Promise<Response> =>
+        new Promise((resolve) => {
+          finish = resolve;
+        });
+      await editProfileField('Имя');
+      changeProfileField('Имя', 'Черновик');
+      await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
+      await waitFor(() => expect(profilePatchRequests()).toHaveLength(1));
+      await userEvent.click(screen.getByRole('link', { name: 'История заказов' }));
+      if (reopenBeforeResponse) {
+        await userEvent.click(screen.getByRole('link', { name: 'Профиль' }));
+        expect(screen.getByRole('status')).toHaveTextContent('Сохраняем…');
+        expect(screen.getByLabelText('Имя')).toBeDisabled();
+        await editProfileField('Имя');
+        fireEvent.submit(screen.getByRole('form', { name: 'Профиль' }));
+      }
+      const confirmed = { ...user, name: 'Подтверждённое' };
+      await act(async () => {
+        finish(json({ success: true, user: confirmed }));
+        await Promise.resolve();
+      });
+      await waitFor(() => expect(app.getState().auth.user).toEqual(confirmed));
+      if (!reopenBeforeResponse) {
+        expect(router.state.location.pathname).toBe('/profile/orders');
+        await act(() => router.navigate('/profile'));
+      }
+      expect(screen.getByLabelText('Имя')).toHaveValue(confirmed.name);
+      expect(screen.getByLabelText('Пароль')).toHaveValue('');
+      expect(
+        screen.queryByRole('button', { name: 'Сохранить' })
+      ).not.toBeInTheDocument();
+      expect(profilePatchRequests()).toHaveLength(1);
+    }
+  );
+
+  it('выход до ответа PATCH не возвращает пользователя и не меняет маршрут', async () => {
+    saveTokens(authResponse);
+    app.dispatch(sessionEstablished(user));
+    const router = mount('/profile');
+    let finish!: (response: Response) => void;
+    respond = (request): Response | Promise<Response> =>
+      request.method === 'PATCH'
+        ? new Promise((resolve) => {
+            finish = resolve;
+          })
+        : json({ success: true, message: 'Logged out' });
+    await editProfileField('Имя');
+    await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
+    await waitFor(() => expect(profilePatchRequests()).toHaveLength(1));
+    await userEvent.click(screen.getByRole('button', { name: 'Выход' }));
+    await screen.findByRole('heading', { name: 'Главная' });
+    await act(async () => {
+      finish(json({ success: true, user: { ...user, name: 'Поздний' } }));
+      await Promise.resolve();
+    });
+    await waitFor(() =>
+      expect(Object.keys(app.getState().burgerApi.mutations)).toHaveLength(0)
+    );
+    expect(router.state.location.pathname).toBe('/');
+    expect(app.getState().auth.user).toBeNull();
   });
 
   it('после выхода и входа другим пользователем показывает новые данные без старого черновика', async () => {
@@ -365,7 +606,9 @@ describe('формы и защищённые маршруты', () => {
     await fill();
     await userEvent.click(screen.getByRole('button', { name: 'Войти' }));
     await screen.findByDisplayValue(user.email);
+    await editProfileField('Имя');
     fireEvent.change(screen.getByLabelText('Имя'), { target: { value: 'Черновик' } });
+    await editProfileField('Пароль');
     fireEvent.change(screen.getByLabelText('Пароль'), {
       target: { value: 'draft-password' },
     });
