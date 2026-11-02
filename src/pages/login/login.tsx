@@ -15,7 +15,7 @@ export const LoginPage = (): React.JSX.Element => {
   const location = useLocation();
   const [login, { isLoading }] = useLoginMutation();
   const { error, submit } = useAuthSubmission(
-    (values: typeof form) => login(values).unwrap(),
+    (values: typeof form) => login(values),
     'Не удалось войти. Проверьте данные и повторите попытку.'
   );
 

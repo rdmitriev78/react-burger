@@ -5,7 +5,6 @@ import { passwordRecoveryStorageErrorMessage } from '@services/password-recovery
 import type { TPasswordRecoveryResponse } from '@services/password-recovery/password-recovery.types';
 
 type TRecoveryRequest = {
-  abort: () => void;
   unwrap: () => Promise<TPasswordRecoveryResponse>;
 };
 
@@ -19,41 +18,30 @@ export const usePasswordRecoverySubmission = <T>(
   isSubmitting: boolean;
   isConfirmed: boolean;
 } => {
-  // Проверяем, что страница ещё смонтирована, перед обработкой результата запроса.
+  // После ухода не записываем флаг восстановления и не меняем маршрут.
   const mountedRef = useRef(true);
-  // Блокируем повторный submit сразу, не дожидаясь следующего рендера.
-  const pendingRef = useRef(false);
-  // Запоминаем успех API, чтобы при ошибке хранилища не повторять HTTP-запрос.
-  const confirmedRef = useRef(false);
-  // Храним активную мутацию, чтобы отменить её при размонтировании страницы.
-  const requestRef = useRef<TRecoveryRequest | null>(null);
 
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Запоминаем успех API, чтобы при ошибке хранилища не повторять HTTP-запрос.
   const [isConfirmed, setIsConfirmed] = useState(false);
 
   useEffect(() => {
     mountedRef.current = true;
     return (): void => {
       mountedRef.current = false;
-      requestRef.current?.abort();
     };
   }, []);
 
   const submit = async (values: T): Promise<void> => {
-    if (pendingRef.current || !mountedRef.current) return;
-    pendingRef.current = true;
     setIsSubmitting(true);
     setError('');
     try {
       // После успешного ответа API повторяем только запись/очистку флага:
       // код сброса уже мог быть использован, а письмо уже отправлено.
-      if (!confirmedRef.current) {
-        const operation = request(values);
-        requestRef.current = operation;
-        await operation.unwrap();
+      if (!isConfirmed) {
+        await request(values).unwrap();
         if (!mountedRef.current) return;
-        confirmedRef.current = true;
         setIsConfirmed(true);
       }
       try {
@@ -62,11 +50,9 @@ export const usePasswordRecoverySubmission = <T>(
         setError(passwordRecoveryStorageErrorMessage);
       }
     } catch {
-      if (mountedRef.current) setError(requestErrorMessage);
+      setError(requestErrorMessage);
     } finally {
-      requestRef.current = null;
-      pendingRef.current = false;
-      if (mountedRef.current) setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 

@@ -297,31 +297,36 @@ describe('формы и защищённые маршруты', () => {
     expect(screen.getByRole('button', { name: 'Выход' })).toBeEnabled();
   });
 
-  it('блокирует два быстрых submit и повторно разрешает отправку после ошибки', async () => {
-    app.dispatch(sessionEnded());
-    mount('/login');
-    await fill();
-    await userEvent.tab();
-    let finish!: (value: Response) => void;
-    respond = (): Response | Promise<Response> =>
-      new Promise((resolve) => {
-        finish = resolve;
+  it.each(['/login', '/register'])(
+    '%s: блокирует повторные клик и Enter во время запроса и разрешает повтор после ошибки',
+    async (path) => {
+      app.dispatch(sessionEnded());
+      mount(path);
+      await fill(path === '/register');
+      let finish!: (value: Response) => void;
+      respond = (): Response | Promise<Response> =>
+        new Promise((resolve) => {
+          finish = resolve;
+        });
+      const buttonName = path === '/login' ? 'Войти' : 'Зарегистрироваться';
+      const button = screen.getByRole('button', { name: buttonName });
+      await userEvent.dblClick(button);
+      await userEvent.click(screen.getByLabelText('Пароль'));
+      await userEvent.keyboard('{Enter}');
+      await waitFor(() => expect(requests).toHaveLength(1));
+      expect(button).toBeDisabled();
+      await act(async () => {
+        finish(json({}, 500));
+        await Promise.resolve();
       });
-    const form = screen.getByRole('form', { name: 'Вход' });
-    await act(async () => {
-      fireEvent.submit(form);
-      fireEvent.submit(form);
-      await Promise.resolve();
-    });
-    await waitFor(() => expect(requests).toHaveLength(1));
-    expect(screen.getByRole('button', { name: 'Входим…' })).toBeDisabled();
-    await act(async () => {
-      finish(json({}, 500));
-      await Promise.resolve();
-    });
-    await screen.findByRole('alert');
-    expect(screen.getByRole('button', { name: 'Войти' })).toBeEnabled();
-  });
+      await screen.findByRole('alert');
+      expect(button).toBeEnabled();
+      respond = (): Response => json(authResponse);
+      await userEvent.click(screen.getByRole('button', { name: buttonName }));
+      await screen.findByRole('heading', { name: 'Главная' });
+      expect(requests).toHaveLength(2);
+    }
+  );
 
   it('проверяет сессию из App в StrictMode без показа формы и дублирующего запроса', async () => {
     saveTokens(authResponse);
@@ -364,6 +369,126 @@ describe('формы и защищённые маршруты', () => {
     await screen.findByRole('heading', { name: 'Главная' });
     expect(app.getState().auth.user).toBeNull();
   });
+
+  it.each(['/login', '/register'])(
+    'ошибка записи токенов не подтверждает вход на %s',
+    async (path) => {
+      app.dispatch(sessionEnded());
+      const router = mount(path);
+      await fill(path === '/register');
+      const writing = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+        throw new Error('Denied');
+      });
+      fireEvent.submit(screen.getByRole('form'));
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Не удалось прочитать или сохранить сессию'
+      );
+      expect(app.getState().auth.status).toBe('anonymous');
+      expect(app.getState().auth.user).toBeNull();
+      expect(router.state.location.pathname).toBe(path);
+      writing.mockRestore();
+      await userEvent.click(
+        screen.getByRole('button', {
+          name: path === '/login' ? 'Войти' : 'Зарегистрироваться',
+        })
+      );
+      await screen.findByRole('heading', { name: 'Главная' });
+    }
+  );
+
+  it('logout блокирует быстрые дубли и сохраняет ожидание после возврата', async () => {
+    saveTokens(authResponse);
+    app.dispatch(sessionEstablished(user));
+    const router = mount('/profile');
+    let finish!: (response: Response) => void;
+    respond = (): Promise<Response> =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    const button = screen.getByRole('button', { name: 'Выход' });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await waitFor(() => expect(requests).toHaveLength(1));
+    await act(() => router.navigate('/feed'));
+    await act(() => router.navigate('/profile'));
+    const waiting = screen.getByRole('button', { name: 'Выходим…' });
+    expect(waiting).toBeDisabled();
+    fireEvent.click(waiting);
+    expect(requests).toHaveLength(1);
+    await act(async () => {
+      finish(json({ success: true, message: 'Logged out' }));
+      await Promise.resolve();
+    });
+    await screen.findByRole('heading', { name: 'Главная' });
+    expect(localStorage.getItem('refreshToken')).toBeNull();
+  });
+
+  it('успешный выход завершает переход на лениво загружаемую главную', async () => {
+    saveTokens(authResponse);
+    app.dispatch(sessionEstablished(user));
+    let loadHome!: () => void;
+    const home = new Promise<void>((resolve) => {
+      loadHome = resolve;
+    });
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/',
+          lazy: async (): Promise<{ Component: () => React.JSX.Element }> => {
+            await home;
+            return { Component: (): React.JSX.Element => <h1>Главная</h1> };
+          },
+        },
+        {
+          element: <ProtectedRoute />,
+          children: [
+            {
+              path: '/profile',
+              element: <ProfileLayout />,
+              children: [{ index: true, element: <ProfilePage /> }],
+            },
+          ],
+        },
+        { path: '/login', element: <h1>Вход</h1> },
+      ],
+      { initialEntries: ['/profile'] }
+    );
+    render(
+      <Provider store={app}>
+        <RouterProvider router={router} />
+      </Provider>
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Выход' }));
+    await waitFor(() => expect(router.state.navigation.location?.pathname).toBe('/'));
+    expect(app.getState().auth.status).toBe('anonymous');
+    expect(localStorage.getItem('accessToken')).toBeNull();
+    await act(async () => {
+      loadHome();
+      await home;
+    });
+    await screen.findByRole('heading', { name: 'Главная' });
+    expect(router.state.location.pathname).toBe('/');
+  });
+
+  it.each(['read', 'clear'])(
+    'ошибка хранилища %s не объявляет успешный выход',
+    async (stage) => {
+      saveTokens(authResponse);
+      app.dispatch(sessionEstablished(user));
+      const router = mount('/profile');
+      vi.spyOn(
+        localStorage,
+        stage === 'read' ? 'getItem' : 'removeItem'
+      ).mockImplementation(() => {
+        throw new Error('Denied');
+      });
+      await userEvent.click(screen.getByRole('button', { name: 'Выход' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось выйти');
+      expect(router.state.location.pathname).toBe('/profile');
+      expect(app.getState().auth.status).toBe('authenticated');
+      expect(screen.getByRole('button', { name: 'Выход' })).toBeEnabled();
+    }
+  );
 
   it('карандаш включает режим формы, смена поля и blur сохраняют черновик и кнопки', async () => {
     app.dispatch(sessionEstablished(user));
@@ -429,7 +554,6 @@ describe('формы и защищённые маршруты', () => {
         password,
       });
       expect(app.getState().auth.user).toEqual(confirmed);
-      expect(app.getState().auth.version).toBe(1);
       expect(screen.getByLabelText('Имя')).toHaveValue(confirmed.name);
       expect(screen.getByLabelText('Пароль')).toHaveValue('');
       await editProfileField('Имя');
@@ -499,7 +623,7 @@ describe('формы и защищённые маршруты', () => {
     expect(screen.getByLabelText('Имя')).toHaveValue(user.name);
   });
 
-  it('блокирует поля, карандаши, обе кнопки и быстрые повторные submit', async () => {
+  it('блокирует поля, карандаши, обе кнопки и повторные действия во время PATCH', async () => {
     saveTokens(authResponse);
     app.dispatch(sessionEstablished(user));
     mount('/profile');
@@ -511,8 +635,8 @@ describe('формы и защищённые маршруты', () => {
     await editProfileField('Имя');
     changeProfileField('Имя', 'Черновик');
     const form = screen.getByRole('form', { name: 'Профиль' });
-    fireEvent.submit(form);
-    fireEvent.submit(form);
+    await userEvent.dblClick(screen.getByRole('button', { name: 'Сохранить' }));
+    await userEvent.keyboard('{Enter}');
     await waitFor(() => expect(profilePatchRequests()).toHaveLength(1));
     expect(form).toHaveAttribute('aria-busy', 'true');
     for (const label of ['Имя', 'Логин', 'Пароль'])
@@ -520,7 +644,6 @@ describe('формы и защищённые маршруты', () => {
     expect(screen.getByRole('button', { name: 'Отмена' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Сохраняем…' })).toBeDisabled();
     await editProfileField('Логин');
-    fireEvent.click(screen.getByRole('button', { name: 'Отмена' }));
     expect(screen.getByLabelText('Имя')).toHaveValue('Черновик');
     await act(async () => {
       finish(json({}, 500));
@@ -552,7 +675,8 @@ describe('формы и защищённые маршруты', () => {
         expect(screen.getByRole('status')).toHaveTextContent('Сохраняем…');
         expect(screen.getByLabelText('Имя')).toBeDisabled();
         await editProfileField('Имя');
-        fireEvent.submit(screen.getByRole('form', { name: 'Профиль' }));
+        await userEvent.click(screen.getByLabelText('Имя'));
+        await userEvent.keyboard('{Enter}');
       }
       const confirmed = { ...user, name: 'Подтверждённое' };
       await act(async () => {
@@ -572,33 +696,6 @@ describe('формы и защищённые маршруты', () => {
       expect(profilePatchRequests()).toHaveLength(1);
     }
   );
-
-  it('выход до ответа PATCH не возвращает пользователя и не меняет маршрут', async () => {
-    saveTokens(authResponse);
-    app.dispatch(sessionEstablished(user));
-    const router = mount('/profile');
-    let finish!: (response: Response) => void;
-    respond = (request): Response | Promise<Response> =>
-      request.method === 'PATCH'
-        ? new Promise((resolve) => {
-            finish = resolve;
-          })
-        : json({ success: true, message: 'Logged out' });
-    await editProfileField('Имя');
-    await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
-    await waitFor(() => expect(profilePatchRequests()).toHaveLength(1));
-    await userEvent.click(screen.getByRole('button', { name: 'Выход' }));
-    await screen.findByRole('heading', { name: 'Главная' });
-    await act(async () => {
-      finish(json({ success: true, user: { ...user, name: 'Поздний' } }));
-      await Promise.resolve();
-    });
-    await waitFor(() =>
-      expect(Object.keys(app.getState().burgerApi.mutations)).toHaveLength(0)
-    );
-    expect(router.state.location.pathname).toBe('/');
-    expect(app.getState().auth.user).toBeNull();
-  });
 
   it('после выхода и входа другим пользователем показывает новые данные без старого черновика', async () => {
     app.dispatch(sessionEnded());
@@ -634,6 +731,197 @@ describe('формы и защищённые маршруты', () => {
     ).toHaveLength(1);
   });
 
+  it.each([
+    { first: 'login', status: 200 },
+    { first: 'login', status: 500 },
+    { first: 'register', status: 200 },
+    { first: 'register', status: 500 },
+  ])(
+    'уход с $first отменяет её поздний результат ($status)',
+    async ({ first, status }) => {
+      app.dispatch(sessionEnded());
+      let finish!: (response: Response) => void;
+      const pending = new Promise<Response>((resolve) => {
+        finish = resolve;
+      });
+      const otherUser = { name: 'Другой', email: 'other@example.test' };
+      respond = (request): Response | Promise<Response> =>
+        request.url.endsWith(`auth/${first}`)
+          ? pending
+          : json({
+              ...authResponse,
+              user: otherUser,
+              accessToken: 'Bearer other',
+              refreshToken: 'other-refresh',
+            });
+      const router = mount(`/${first}`);
+      await fill(first === 'register');
+      await userEvent.click(
+        screen.getByRole('button', {
+          name: first === 'login' ? 'Войти' : 'Зарегистрироваться',
+        })
+      );
+      await waitFor(() => expect(requests).toHaveLength(1));
+      await userEvent.click(
+        screen.getByRole('link', {
+          name: first === 'login' ? 'Зарегистрироваться' : 'Войти',
+        })
+      );
+      await fill(first === 'login');
+      await userEvent.click(
+        screen.getByRole('button', {
+          name: first === 'login' ? 'Зарегистрироваться' : 'Войти',
+        })
+      );
+      await screen.findByRole('heading', { name: 'Главная' });
+      expect(app.getState().auth.user).toEqual(otherUser);
+      await act(async () => {
+        finish(json(authResponse, status));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      expect(app.getState().auth.user).toEqual(otherUser);
+      expect(localStorage.getItem('accessToken')).toBe('Bearer other');
+      expect(router.state.location.pathname).toBe('/');
+    }
+  );
+
+  it.each([200, 500])(
+    'старый PATCH не блокирует новую форму и не меняет её pending (%s)',
+    async (status) => {
+      saveTokens(authResponse);
+      app.dispatch(sessionEstablished(user));
+      let finishOld!: (response: Response) => void;
+      let finishNew!: (response: Response) => void;
+      const oldPatch = new Promise<Response>((resolve) => {
+        finishOld = resolve;
+      });
+      const newPatch = new Promise<Response>((resolve) => {
+        finishNew = resolve;
+      });
+      const other = { name: 'Другой', email: 'other@example.test' };
+      respond = (request): Response | Promise<Response> =>
+        request.method === 'PATCH'
+          ? profilePatchRequests().length === 1
+            ? oldPatch
+            : newPatch
+          : request.url.endsWith('auth/logout')
+            ? json({ success: true, message: 'Successful logout' })
+            : json({
+                ...authResponse,
+                user: other,
+                accessToken: 'Bearer other',
+                refreshToken: 'other-refresh',
+              });
+      const router = mount('/profile');
+      await editProfileField('Имя');
+      changeProfileField('Имя', 'Черновик A');
+      await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
+      await waitFor(() => expect(profilePatchRequests()).toHaveLength(1));
+      await userEvent.click(screen.getByRole('button', { name: 'Выход' }));
+      await screen.findByRole('heading', { name: 'Главная' });
+      await act(() => router.navigate('/login'));
+      await fill();
+      await userEvent.click(screen.getByRole('button', { name: 'Войти' }));
+      await screen.findByRole('heading', { name: 'Главная' });
+      await act(() => router.navigate('/profile'));
+      expect(screen.getByLabelText('Имя')).toHaveValue(other.name);
+      expect(screen.getByLabelText('Имя')).not.toBeDisabled();
+      await editProfileField('Имя');
+      changeProfileField('Имя', 'Новое B');
+      await userEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
+      await waitFor(() => expect(profilePatchRequests()).toHaveLength(2));
+      await act(async () => {
+        finishOld(json({ success: true, user }, status));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      expect(app.getState().auth.user).toEqual(other);
+      expect(screen.getByLabelText('Имя')).toHaveValue('Новое B');
+      expect(screen.getByLabelText('Имя')).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Сохраняем…' })).toBeDisabled();
+      act(() => {
+        finishNew(json({ success: true, user: { ...other, name: 'Новое B' } }));
+      });
+      await waitFor(() => expect(screen.getByLabelText('Имя')).not.toBeDisabled());
+      expect(app.getState().auth.user?.name).toBe('Новое B');
+      expect(localStorage.getItem('accessToken')).toBe('Bearer other');
+    }
+  );
+
+  it.each([
+    { path: '/login', status: 200 },
+    { path: '/login', status: 500 },
+    { path: '/register', status: 200 },
+    { path: '/register', status: 500 },
+  ])(
+    'уход с $path без другой попытки исключает позднюю авторизацию ($status)',
+    async ({ path, status }) => {
+      app.dispatch(sessionEnded());
+      let finish!: (response: Response) => void;
+      respond = (): Response | Promise<Response> =>
+        new Promise<Response>((resolve) => {
+          finish = resolve;
+        });
+      const router = mount(path);
+      await fill(path === '/register');
+      await userEvent.click(
+        screen.getByRole('button', {
+          name: path === '/register' ? 'Зарегистрироваться' : 'Войти',
+        })
+      );
+      await waitFor(() => expect(requests).toHaveLength(1));
+      await act(() => router.navigate('/feed'));
+      await act(async () => {
+        finish(json(authResponse, status));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      expect(app.getState().auth.status).toBe('anonymous');
+      expect(localStorage.getItem('accessToken')).toBeNull();
+      expect(router.state.location.pathname).toBe('/feed');
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    }
+  );
+
+  it('старый logout не блокирует новый и не сбрасывает его ожидание', async () => {
+    saveTokens(authResponse);
+    app.dispatch(sessionEstablished(user));
+    let finishOld!: (response: Response) => void;
+    let finishNew!: (response: Response) => void;
+    const oldLogout = new Promise<Response>((resolve) => {
+      finishOld = resolve;
+    });
+    const newLogout = new Promise<Response>((resolve) => {
+      finishNew = resolve;
+    });
+    respond = (): Response | Promise<Response> =>
+      requests.length === 1 ? oldLogout : newLogout;
+    const router = mount('/profile');
+    await userEvent.click(screen.getByRole('button', { name: 'Выход' }));
+    await waitFor(() => expect(requests).toHaveLength(1));
+    await act(() => router.navigate('/feed'));
+    act(() => {
+      // Подтверждённое завершение другим запросом; сетевой сценарий проверяется в браузере.
+      app.dispatch(sessionEnded());
+      saveTokens({ accessToken: 'Bearer other', refreshToken: 'other-refresh' });
+      app.dispatch(sessionEstablished({ name: 'Другой', email: 'other@example.test' }));
+    });
+    await act(() => router.navigate('/profile'));
+    expect(screen.getByRole('button', { name: 'Выход' })).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Выход' }));
+    await waitFor(() => expect(requests).toHaveLength(2));
+    await act(async () => {
+      finishOld(json({ success: true, message: 'Successful logout' }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(screen.getByRole('button', { name: 'Выходим…' })).toBeDisabled();
+    expect(router.state.location.pathname).toBe('/profile');
+    expect(localStorage.getItem('accessToken')).toBe('Bearer other');
+    act(() => {
+      finishNew(json({ success: true, message: 'Successful logout' }));
+    });
+    await screen.findByRole('heading', { name: 'Главная' });
+    expect(app.getState().auth.status).toBe('anonymous');
+  });
+
   it.each(['/', '/feed', '/ingredients/id', '/missing'])(
     'не блокирует публичный маршрут %s при неизвестной сессии',
     (path) => {
@@ -644,7 +932,7 @@ describe('формы и защищённые маршруты', () => {
   );
 
   it('не показывает формы/профиль при ошибке чтения сессии', () => {
-    app.dispatch(sessionFailed({ version: 0, message: 'Хранилище недоступно' }));
+    app.dispatch(sessionFailed('Хранилище недоступно'));
     mount('/login');
     expect(screen.getByRole('alert')).toHaveTextContent('Хранилище недоступно');
     expect(screen.queryByRole('form')).not.toBeInTheDocument();

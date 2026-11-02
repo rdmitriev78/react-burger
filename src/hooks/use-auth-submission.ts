@@ -1,13 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useAppDispatch, useAppStore } from '@hooks/redux';
+import { selectSessionVersion } from '@services/auth/auth-slice';
 import { establishSession } from '@services/auth/auth-thunks';
 import { storageErrorMessage } from '@services/auth/token-storage';
 
 import type { TAuthResponse } from '@services/auth/auth.types';
 
+type TAuthRequest = {
+  abort: () => void;
+  unwrap: () => Promise<TAuthResponse>;
+};
+
 export const useAuthSubmission = <T>(
-  request: (values: T) => Promise<TAuthResponse>,
+  request: (values: T) => TAuthRequest,
   message: string
 ): {
   error: string;
@@ -15,34 +21,28 @@ export const useAuthSubmission = <T>(
 } => {
   const dispatch = useAppDispatch();
   const store = useAppStore();
-  const pendingRef = useRef(false);
-  const mountedRef = useRef(true);
+  // Сохраняем операцию для отмены при уходе на другую форму или страницу.
+  const requestRef = useRef<TAuthRequest | null>(null);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return (): void => {
-      mountedRef.current = false;
-    };
-  }, []);
+  useEffect(() => (): void => requestRef.current?.abort(), []);
 
   const submit = async (values: T): Promise<void> => {
-    if (pendingRef.current) return;
-    pendingRef.current = true;
+    const version = selectSessionVersion(store.getState());
     setError('');
-    const version = store.getState().auth.version;
     try {
-      const response = await request(values);
+      const operation = request(values);
+      requestRef.current = operation;
+      const response = await operation.unwrap();
       dispatch(establishSession(response, version));
     } catch (cause: unknown) {
-      if (mountedRef.current)
-        setError(
-          cause instanceof Error && cause.message === storageErrorMessage
-            ? storageErrorMessage
-            : message
-        );
+      setError(
+        cause instanceof Error && cause.message === storageErrorMessage
+          ? storageErrorMessage
+          : message
+      );
     } finally {
-      pendingRef.current = false;
+      requestRef.current = null;
     }
   };
 

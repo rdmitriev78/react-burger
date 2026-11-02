@@ -4,7 +4,10 @@ import {
   checkingSession,
   logoutFinished,
   logoutStarted,
+  profileSaveFinished,
+  profileSaveStarted,
   selectAuth,
+  selectSessionVersion,
   sessionChecked,
   sessionEnded,
   sessionEstablished,
@@ -22,47 +25,35 @@ import type { TAuthResponse, TUser, TUserUpdate } from './auth.types';
 import type { AppThunk } from '@services/store';
 
 export const establishSession =
-  (response: TAuthResponse, version: number): AppThunk =>
-  (dispatch, getState): void => {
-    if (selectAuth(getState()).version !== version)
-      throw new Error('Сессия уже изменилась');
+  (response: TAuthResponse, version: number): AppThunk<boolean> =>
+  (dispatch, getState): boolean => {
+    if (selectSessionVersion(getState()) !== version) return false;
     saveTokens(response);
     dispatch(sessionEstablished(response.user));
+    return true;
   };
-
-// Ключ разделяет операции разных сессий; он не используется как React key формы.
-export const profileSubmissionCacheKey = (version: number): string =>
-  `profile-submission-${version}`;
 
 export const saveProfile =
   (values: TUserUpdate): AppThunk<Promise<TUser | undefined>> =>
   async (dispatch, getState): Promise<TUser | undefined> => {
-    const { version, status } = selectAuth(getState());
-    if (status !== 'authenticated') return;
-    const fixedCacheKey = profileSubmissionCacheKey(version);
-    if (
-      dispatch(
-        burgerApi.util.getRunningMutationThunk('updateCurrentUser', fixedCacheKey)
-      )
-    )
-      return;
-
-    // Операция принадлежит сессии, а не странице: уход не отменяет PATCH.
-    const request = dispatch(
-      burgerApi.endpoints.updateCurrentUser.initiate(values, { fixedCacheKey })
-    );
+    const { version, status, isSavingProfile } = selectAuth(getState());
+    if (status !== 'authenticated' || isSavingProfile) return;
+    dispatch(profileSaveStarted());
+    // Сохранение принадлежит сессии и продолжается после ухода со страницы.
+    const request = dispatch(burgerApi.endpoints.updateCurrentUser.initiate(values));
     try {
-      // unwrap завершается раньше реестра running-мутаций RTK Query.
-      // Ждём и внешний Promise, чтобы сразу после результата разрешить новую отправку.
-      await request;
       const response = await request.unwrap();
-      const current = selectAuth(getState());
-      if (current.version !== version || current.status !== 'authenticated') return;
-      const confirmedUser = { name: response.user.name, email: response.user.email };
-      dispatch(userUpdated({ user: confirmedUser, version }));
-      return confirmedUser;
+      if (selectSessionVersion(getState()) !== version) return;
+      const user = { name: response.user.name, email: response.user.email };
+      dispatch(userUpdated(user));
+      return user;
+    } catch (error: unknown) {
+      if (selectSessionVersion(getState()) !== version) return;
+      throw error;
     } finally {
       request.reset();
+      // Старое завершение не снимает ожидание сохранения нового пользователя.
+      if (selectSessionVersion(getState()) === version) dispatch(profileSaveFinished());
     }
   };
 
@@ -84,26 +75,27 @@ export const checkSession =
         return;
       }
       const request = dispatch(
-        burgerApi.endpoints.getCurrentUser.initiate(undefined, {
+        burgerApi.endpoints.getCurrentUser.initiate(version, {
           forceRefetch: true,
           subscribe: false,
         })
       );
-      try {
-        const response = await request.unwrap();
-        dispatch(sessionChecked({ user: response.user, version }));
-      } finally {
-        request.unsubscribe();
-      }
+      const response = await request.unwrap();
+      if (selectSessionVersion(getState()) !== version) return;
+      dispatch(sessionChecked(response.user));
     } catch (error: unknown) {
+      // Транспорт уже мог подтвердить выход или сообщить об ошибке хранилища.
+      if (
+        selectSessionVersion(getState()) !== version ||
+        selectAuth(getState()).status !== 'checking'
+      )
+        return;
       dispatch(
-        sessionFailed({
-          version,
-          message:
-            error instanceof Error
-              ? error.message
-              : 'Не удалось проверить сессию. Повторите попытку.',
-        })
+        sessionFailed(
+          error instanceof Error
+            ? error.message
+            : 'Не удалось проверить сессию. Повторите попытку.'
+        )
       );
     }
   };
@@ -114,23 +106,27 @@ export const logout =
     const { version, isLoggingOut, status } = selectAuth(getState());
     if (isLoggingOut || status !== 'authenticated') return false;
     dispatch(logoutStarted());
-    let request:
-      | ReturnType<ReturnType<typeof burgerApi.endpoints.logout.initiate>>
-      | undefined;
     try {
       const tokens = readTokens();
       if (tokens) {
-        request = dispatch(
+        const request = dispatch(
           burgerApi.endpoints.logout.initiate({ token: tokens.refreshToken })
         );
-        await request.unwrap();
+        try {
+          await request.unwrap();
+        } finally {
+          request.reset();
+        }
       }
-      if (selectAuth(getState()).version !== version) return false;
+      if (selectSessionVersion(getState()) !== version) return false;
       clearTokens();
       dispatch(sessionEnded());
       return true;
+    } catch (error: unknown) {
+      if (selectSessionVersion(getState()) !== version) return false;
+      throw error;
     } finally {
-      request?.reset();
-      if (selectAuth(getState()).version === version) dispatch(logoutFinished());
+      // Успешный sessionEnded уже сбросил флаги и сменил поколение.
+      if (selectSessionVersion(getState()) === version) dispatch(logoutFinished());
     }
   };

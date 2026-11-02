@@ -331,15 +331,15 @@ describe('восстановление и сброс пароля', () => {
       expect(requests).toHaveLength(1);
     });
 
-    it('блокирует быстрый двойной submit', async () => {
+    it('блокирует повторные клик и Enter во время запроса', async () => {
       const router = prepare();
       const pending = deferred();
       respond = (): Promise<Response> => pending.promise;
-      const form = screen.getByRole('form', { name: 'Восстановление пароля' });
-      act(() => {
-        fireEvent.submit(form);
-        fireEvent.submit(form);
-      });
+      await user.dblClick(button());
+      await user.click(
+        screen.getByLabelText(isReset ? 'Введите код из письма' : 'Укажите e-mail')
+      );
+      await user.keyboard('{Enter}');
       await waitFor(() => expect(requests).toHaveLength(1));
       expect(
         screen.getByRole('button', { name: isReset ? 'Сохраняем…' : 'Отправляем…' })
@@ -356,20 +356,27 @@ describe('восстановление и сброс пароля', () => {
       expect(requests).toHaveLength(1);
     });
 
-    it('игнорирует поздний ответ после ухода со страницы', async () => {
-      const router = prepare();
-      const pending = deferred();
-      respond = (): Promise<Response> => pending.promise;
-      await user.click(button());
-      await waitFor(() => expect(requests).toHaveLength(1));
-      await user.click(screen.getByRole('link', { name: 'На главную' }));
-      await act(async () => {
-        pending.resolve(json());
-        await Promise.resolve();
-      });
-      expect(router.state.location.pathname).toBe('/');
-      expect(hasPasswordResetRequest()).toBe(isReset);
-    });
+    it.each([200, 500])(
+      'не отменяет запрос и игнорирует поздний ответ после ухода (%s)',
+      async (status) => {
+        const router = prepare();
+        const pending = deferred();
+        respond = (): Promise<Response> => pending.promise;
+        await user.click(button());
+        await waitFor(() => expect(requests).toHaveLength(1));
+        const [operation] = app.dispatch(burgerApi.util.getRunningMutationsThunk());
+        const abort = vi.spyOn(operation, 'abort');
+        await user.click(screen.getByRole('link', { name: 'На главную' }));
+        expect(abort).not.toHaveBeenCalled();
+        await act(async () => {
+          pending.resolve(json(undefined, status));
+          await Promise.resolve();
+        });
+        expect(router.state.location.pathname).toBe('/');
+        expect(hasPasswordResetRequest()).toBe(isReset);
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      }
+    );
   });
 
   it('повторяет запись флага без повторного письма после серверного успеха', async () => {

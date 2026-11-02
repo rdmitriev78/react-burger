@@ -15,7 +15,7 @@ export const RegisterPage = (): React.JSX.Element => {
   const location = useLocation();
   const [register, { isLoading }] = useRegisterMutation();
   const { error, submit } = useAuthSubmission(
-    (values: typeof form) => register(values).unwrap(),
+    (values: typeof form) => register(values),
     'Не удалось зарегистрироваться. Проверьте данные и повторите попытку.'
   );
 

@@ -25,7 +25,6 @@ export const BurgerIngredients = memo(function BurgerIngredients({
 }: TBurgerIngredientsProps): React.JSX.Element {
   const ingredientsByType = useAppSelector(selectIngredientsByType);
   const [activeTab, setActiveTab] = useState<TIngredient['type']>('bun');
-  const activeTabRef = useRef<TIngredient['type']>('bun');
   const containerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<TIngredient['type'], HTMLElement | null>>({
     bun: null,
@@ -62,9 +61,6 @@ export const BurgerIngredients = memo(function BurgerIngredients({
       closestType = ingredientSections[ingredientSections.length - 1].type;
     }
 
-    if (activeTabRef.current === closestType) return;
-
-    activeTabRef.current = closestType;
     setActiveTab(closestType);
   }, []);
 

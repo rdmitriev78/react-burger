@@ -3,7 +3,7 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { isAuthResponse, isObject, isUserResponse } from '@services/auth/auth.types';
 import { isPasswordRecoveryResponse } from '@services/password-recovery/password-recovery.types';
 
-import { createBaseQueryWithReauth } from './base-query-with-reauth';
+import { baseQueryWithReauth } from './base-query-with-reauth';
 
 import type { TIngredient } from '@app-types/ingredient';
 import type {
@@ -54,7 +54,7 @@ const isCreateOrderResponseValid = (body: unknown): body is TCreateOrderResponse
 
 export const burgerApi = createApi({
   reducerPath: 'burgerApi',
-  baseQuery: createBaseQueryWithReauth(),
+  baseQuery: baseQueryWithReauth,
   endpoints: (builder) => ({
     requestPasswordReset: builder.mutation<
       TPasswordRecoveryResponse,
@@ -112,7 +112,8 @@ export const burgerApi = createApi({
           typeof data.message === 'string',
       }),
     }),
-    getCurrentUser: builder.query<TUserResponse, void>({
+    // Поколение разделяет ожидающие проверки в кеше; серверу оно не передаётся.
+    getCurrentUser: builder.query<TUserResponse, number>({
       extraOptions: { auth: true },
       keepUnusedDataFor: 0,
       query: () => ({
