@@ -47,9 +47,9 @@ export const AppHeader = ({
             )}
           </NavLink>
         </div>
-        <div className={styles.logo}>
+        <Link to="/" aria-label="На главную" className={styles.logo}>
           <Logo />
-        </div>
+        </Link>
         <NavLink
           to="/profile"
           className={({ isActive }) =>
