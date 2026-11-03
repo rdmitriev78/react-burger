@@ -19,6 +19,9 @@ export const Home = (): React.JSX.Element => {
   // чтобы смена URL не вызывала рендер каждой секции каталога; стабильный обработчик
   // передаём через пропсы, сохраняя возможность пропустить рендер с помощью memo.
   const navigate = useNavigate();
+  const handleLogin = useCallback((): void => {
+    void navigate('/login');
+  }, [navigate]);
   const handleIngredientClick = useCallback(
     (ingredient: TIngredient): void => {
       // Отмечаем переход с главной, чтобы при закрытии модалки
@@ -63,7 +66,7 @@ export const Home = (): React.JSX.Element => {
       {ingredients && (
         <main className={`${styles.main} pl-5 pr-5`} aria-busy={isFetching}>
           <BurgerIngredients onIngredientClick={handleIngredientClick} />
-          <BurgerConstructor />
+          <BurgerConstructor onLogin={handleLogin} />
         </main>
       )}
       <BurgerConstructorDragLayer />

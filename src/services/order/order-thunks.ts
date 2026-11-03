@@ -1,4 +1,5 @@
 import { burgerApi } from '@services/api/burger-api';
+import { selectAuth } from '@services/auth/auth-slice';
 import { openOrderModal } from '@services/modal/modal-slice';
 import {
   orderSubmissionFailed,
@@ -23,6 +24,9 @@ const orderRequestTimeoutMs = 60_000;
 export const submitOrder =
   (ingredientIds: string[]): AppThunk<Promise<void>> =>
   async (dispatch, getState): Promise<void> => {
+    // Оформление требует подтверждённой сессии до открытия модалки и запуска запроса.
+    if (selectAuth(getState()).status !== 'authenticated') return;
+
     // Состояние меняется синхронно, поэтому быстрое двойное нажатие не создаст второй запрос.
     if (selectIsOrderSubmitting(getState())) return;
 
