@@ -1,17 +1,17 @@
 import { Button, EmailInput } from '@krgaa/react-developer-burger-ui-components';
-import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { useForm } from '@hooks/use-form';
 import { usePasswordRecoverySubmission } from '@hooks/use-password-recovery-submission';
 import { useRequestPasswordResetMutation } from '@services/api/burger-api';
 import { markPasswordResetRequested } from '@services/password-recovery/password-recovery-storage';
 
-import type { ChangeEvent, FormEvent } from 'react';
+import type { FormEvent } from 'react';
 
 import styles from './forgot-password.module.css';
 
 export const ForgotPasswordPage = (): React.JSX.Element => {
-  const [email, setEmail] = useState('');
+  const { values: form, handleChange } = useForm({ email: '' });
   const navigate = useNavigate();
   const [requestPasswordReset] = useRequestPasswordResetMutation();
   const { submit, error, isSubmitting, isConfirmed } = usePasswordRecoverySubmission(
@@ -23,13 +23,9 @@ export const ForgotPasswordPage = (): React.JSX.Element => {
     'Не удалось запросить письмо. Проверьте e-mail и повторите попытку.'
   );
 
-  const handleChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    setEmail(event.target.value);
-  };
-
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
-    void submit({ email });
+    void submit(form);
   };
 
   return (
@@ -48,7 +44,7 @@ export const ForgotPasswordPage = (): React.JSX.Element => {
           placeholder="Укажите e-mail"
           aria-label="Укажите e-mail"
           autoComplete="email"
-          value={email}
+          value={form.email}
           onChange={handleChange}
           errorText="Введите корректный e-mail"
           required

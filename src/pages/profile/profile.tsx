@@ -2,10 +2,11 @@ import { Button, Input } from '@krgaa/react-developer-burger-ui-components';
 import { useRef, useState } from 'react';
 
 import { useAppDispatch, useAppSelector } from '@hooks/redux';
+import { useForm } from '@hooks/use-form';
 import { selectAuth } from '@services/auth/auth-slice';
 import { saveProfile } from '@services/auth/auth-thunks';
 
-import type { ChangeEvent, FormEvent } from 'react';
+import type { FormEvent } from 'react';
 
 import styles from './profile.module.css';
 
@@ -26,7 +27,11 @@ const fields: { name: TProfileField; label: string; autoComplete: string }[] = [
 export const ProfilePage = (): React.JSX.Element => {
   const dispatch = useAppDispatch();
   const { user, isSavingProfile: isSubmitting } = useAppSelector(selectAuth);
-  const [form, setForm] = useState<TProfileForm>({
+  const {
+    values: form,
+    handleChange,
+    setValues: setForm,
+  } = useForm<TProfileForm>({
     name: user?.name ?? '',
     email: user?.email ?? '',
     password: '',
@@ -39,11 +44,6 @@ export const ProfilePage = (): React.JSX.Element => {
     email: null,
     password: null,
   });
-
-  const handleChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
-  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { ErrorView } from '@components/error-view/error-view';
+import { useForm } from '@hooks/use-form';
 import { usePasswordRecoverySubmission } from '@hooks/use-password-recovery-submission';
 import { useResetPasswordMutation } from '@services/api/burger-api';
 import {
@@ -11,7 +12,7 @@ import {
   passwordRecoveryStorageErrorMessage,
 } from '@services/password-recovery/password-recovery-storage';
 
-import type { ChangeEvent, FormEvent } from 'react';
+import type { FormEvent } from 'react';
 
 import styles from './reset-password.module.css';
 
@@ -25,7 +26,7 @@ const readResetPermission = (): boolean | null => {
 
 export const ResetPasswordPage = (): React.JSX.Element => {
   const [isAllowed, setIsAllowed] = useState(readResetPermission);
-  const [form, setForm] = useState({ password: '', token: '' });
+  const { values: form, handleChange } = useForm({ password: '', token: '' });
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const navigate = useNavigate();
   const [resetPassword] = useResetPasswordMutation();
@@ -37,11 +38,6 @@ export const ResetPasswordPage = (): React.JSX.Element => {
     },
     'Не удалось сбросить пароль. Проверьте код и повторите попытку.'
   );
-
-  const handleChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
-  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();

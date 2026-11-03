@@ -3,14 +3,15 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 import { useAuthSubmission } from '@hooks/use-auth-submission';
+import { useForm } from '@hooks/use-form';
 import { useRegisterMutation } from '@services/api/burger-api';
 
-import type { ChangeEvent, FormEvent } from 'react';
+import type { FormEvent } from 'react';
 
 import styles from './register.module.css';
 
 export const RegisterPage = (): React.JSX.Element => {
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const { values: form, handleChange } = useForm({ name: '', email: '', password: '' });
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const location = useLocation();
   const [register, { isLoading }] = useRegisterMutation();
@@ -18,11 +19,6 @@ export const RegisterPage = (): React.JSX.Element => {
     (values: typeof form) => register(values),
     'Не удалось зарегистрироваться. Проверьте данные и повторите попытку.'
   );
-
-  const handleChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
-  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
