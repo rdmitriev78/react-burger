@@ -19,8 +19,10 @@ export default defineConfig({
     }),
     tsconfigPaths(),
   ],
-  base: '',
+  // Относительный base ломает загрузку assets при прямом входе на /ingredients/:id.
+  base: '/',
   test: {
+    include: ['src/**/*.{test,spec}.?(c|m)[jt]s?(x)'],
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./vitest-setup.ts'],

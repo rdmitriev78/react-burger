@@ -1,4 +1,5 @@
 import { burgerApi } from '@services/api/burger-api';
+import { selectAuth } from '@services/auth/auth-slice';
 import { openOrderModal } from '@services/modal/modal-slice';
 import {
   orderSubmissionFailed,
@@ -15,11 +16,6 @@ import type { AppThunk } from '@services/store';
 const orderSubmissionCacheKey = 'order-submission';
 const orderRequestTimeoutMs = 60_000;
 
-// Селектор читает данные и requestId последней отправки по общему ключу.
-const selectOrderRequest = burgerApi.endpoints.createOrder.select(
-  orderSubmissionCacheKey
-);
-
 /**
  * Создаёт thunk отправки заказа. Он выполняется через dispatch(submitOrder(ids)),
  * получает dispatch и getState от Redux и возвращает Promise<void>.
@@ -28,6 +24,9 @@ const selectOrderRequest = burgerApi.endpoints.createOrder.select(
 export const submitOrder =
   (ingredientIds: string[]): AppThunk<Promise<void>> =>
   async (dispatch, getState): Promise<void> => {
+    // Оформление требует подтверждённой сессии до открытия модалки и запуска запроса.
+    if (selectAuth(getState()).status !== 'authenticated') return;
+
     // Состояние меняется синхронно, поэтому быстрое двойное нажатие не создаст второй запрос.
     if (selectIsOrderSubmitting(getState())) return;
 
@@ -49,17 +48,6 @@ export const submitOrder =
       )
     );
 
-    // После await читаем актуальное состояние через getState.
-    // Статус исключает обновление после stopWaiting, а requestId отличает эту
-    // отправку от следующей, которая использует тот же ключ кеша.
-    const isCurrentRequest = (): boolean => {
-      const state = getState();
-      return (
-        selectIsOrderSubmitting(state) &&
-        selectOrderRequest(state).requestId === request.requestId
-      );
-    };
-
     // RTK Query 2.9.0: при включённом встроенном timeout fetchBaseQuery передаёт
     // abortController.abort в обработчик без привязки this. Ручной request.abort()
     // вызывает Illegal invocation и не прерывает внутренний fetch.
@@ -75,7 +63,7 @@ export const submitOrder =
       // unwrap возвращает тело успешного ответа или отклоняет Promise при ошибке.
       // Корректность номера и названия проверяет сам endpoint createOrder.
       const response = await request.unwrap();
-      if (!isCurrentRequest()) return;
+      if (!selectIsOrderSubmitting(getState())) return;
 
       dispatch(
         orderSubmissionSucceeded({
@@ -85,8 +73,7 @@ export const submitOrder =
       );
     } catch {
       // Ручное прерывание уже показало stopped; ошибкой его не заменяем.
-      // Ошибку предыдущей отправки также не переносим в состояние нового заказа.
-      if (!isCurrentRequest()) return;
+      if (!selectIsOrderSubmitting(getState())) return;
 
       // Ошибки сети, HTTP, структуры ответа и тайм-аут имеют общее сообщение.
       dispatch(orderSubmissionFailed('Ошибка при отправке заказа, повторите позже'));

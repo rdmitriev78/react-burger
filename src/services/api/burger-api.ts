@@ -1,6 +1,23 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
+
+import { isAuthResponse, isObject, isUserResponse } from '@services/auth/auth.types';
+import { isPasswordRecoveryResponse } from '@services/password-recovery/password-recovery.types';
+
+import { baseQueryWithReauth } from './base-query-with-reauth';
 
 import type { TIngredient } from '@app-types/ingredient';
+import type {
+  TAuthResponse,
+  TCredentials,
+  TRegistration,
+  TUserResponse,
+  TUserUpdate,
+} from '@services/auth/auth.types';
+import type {
+  TPasswordRecoveryResponse,
+  TPasswordResetEmailRequest,
+  TPasswordResetRequest,
+} from '@services/password-recovery/password-recovery.types';
 
 type TCreateOrderRequest = {
   ingredients: string[];
@@ -17,42 +34,106 @@ type TIngredientsResponse = {
   data: TIngredient[];
 };
 
-const burgerApiBaseUrl = 'https://new-stellarburgers.education-services.ru/api/';
-
 // Проверяем только оболочку ответа и наличие ингредиентов.
 // Поля элементов data не проверяем: доверяем учебному API.
 const isGetIngredientsResponseValid = (body: unknown): body is TIngredientsResponse =>
-  typeof body === 'object' &&
-  body !== null &&
-  'success' in body &&
+  isObject(body) &&
   body.success === true &&
-  'data' in body &&
   Array.isArray(body.data) &&
   body.data.length > 0;
 
 const isCreateOrderResponseValid = (body: unknown): body is TCreateOrderResponse =>
-  typeof body === 'object' &&
-  body !== null &&
-  'success' in body &&
+  isObject(body) &&
   body.success === true &&
-  'name' in body &&
   typeof body.name === 'string' &&
   body.name.trim().length > 0 &&
-  'order' in body &&
-  typeof body.order === 'object' &&
-  body.order !== null &&
-  'number' in body.order &&
+  isObject(body.order) &&
   typeof body.order.number === 'number' &&
   Number.isSafeInteger(body.order.number) &&
   body.order.number > 0;
 
 export const burgerApi = createApi({
   reducerPath: 'burgerApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: burgerApiBaseUrl,
-  }),
+  baseQuery: baseQueryWithReauth,
   endpoints: (builder) => ({
+    requestPasswordReset: builder.mutation<
+      TPasswordRecoveryResponse,
+      TPasswordResetEmailRequest
+    >({
+      extraOptions: { auth: false },
+      query: (body) => ({
+        url: 'password-reset',
+        method: 'POST',
+        body,
+        validateStatus: (response, data: unknown): boolean =>
+          response.ok && isPasswordRecoveryResponse(data),
+      }),
+    }),
+    resetPassword: builder.mutation<TPasswordRecoveryResponse, TPasswordResetRequest>({
+      extraOptions: { auth: false },
+      query: (body) => ({
+        url: 'password-reset/reset',
+        method: 'POST',
+        body,
+        validateStatus: (response, data: unknown): boolean =>
+          response.ok && isPasswordRecoveryResponse(data),
+      }),
+    }),
+    login: builder.mutation<TAuthResponse, TCredentials>({
+      extraOptions: { auth: false },
+      query: (body) => ({
+        url: 'auth/login',
+        method: 'POST',
+        body,
+        validateStatus: (response, data: unknown): boolean =>
+          response.ok && isAuthResponse(data),
+      }),
+    }),
+    register: builder.mutation<TAuthResponse, TRegistration>({
+      extraOptions: { auth: false },
+      query: (body) => ({
+        url: 'auth/register',
+        method: 'POST',
+        body,
+        validateStatus: (response, data: unknown): boolean =>
+          response.ok && isAuthResponse(data),
+      }),
+    }),
+    logout: builder.mutation<{ success: true; message: string }, { token: string }>({
+      extraOptions: { auth: false },
+      query: (body) => ({
+        url: 'auth/logout',
+        method: 'POST',
+        body,
+        validateStatus: (response, data: unknown): boolean =>
+          response.ok &&
+          isObject(data) &&
+          data.success === true &&
+          typeof data.message === 'string',
+      }),
+    }),
+    // Поколение разделяет ожидающие проверки в кеше; серверу оно не передаётся.
+    getCurrentUser: builder.query<TUserResponse, number>({
+      extraOptions: { auth: true },
+      keepUnusedDataFor: 0,
+      query: () => ({
+        url: 'auth/user',
+        validateStatus: (response, data: unknown): boolean =>
+          response.ok && isUserResponse(data),
+      }),
+    }),
+    updateCurrentUser: builder.mutation<TUserResponse, TUserUpdate>({
+      extraOptions: { auth: true },
+      query: (body) => ({
+        url: 'auth/user',
+        method: 'PATCH',
+        body,
+        validateStatus: (response, data: unknown): boolean =>
+          response.ok && isUserResponse(data),
+      }),
+    }),
     createOrder: builder.mutation<TCreateOrderResponse, TCreateOrderRequest>({
+      extraOptions: { auth: true },
       query: (body) => ({
         url: 'orders',
         method: 'POST',
@@ -62,6 +143,7 @@ export const burgerApi = createApi({
       }),
     }),
     getIngredients: builder.query<TIngredient[], void>({
+      extraOptions: { auth: false },
       query: () => ({
         url: 'ingredients',
         validateStatus: (response, body: unknown): boolean =>
@@ -73,4 +155,10 @@ export const burgerApi = createApi({
   }),
 });
 
-export const { useGetIngredientsQuery } = burgerApi;
+export const {
+  useGetIngredientsQuery,
+  useLoginMutation,
+  useRegisterMutation,
+  useRequestPasswordResetMutation,
+  useResetPasswordMutation,
+} = burgerApi;

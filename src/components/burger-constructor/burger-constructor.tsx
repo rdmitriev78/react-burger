@@ -9,6 +9,7 @@ import { BurgerConstructorDropZone } from '@components/burger-constructor-drop-z
 import { BurgerConstructorIngredient } from '@components/burger-constructor-ingredient/burger-constructor-ingredient';
 import { useAppSelector } from '@hooks/redux';
 import { useOrderSubmission } from '@hooks/use-order-submission';
+import { selectAuth } from '@services/auth/auth-slice';
 import {
   selectCanOrder,
   selectConstructorState,
@@ -17,8 +18,14 @@ import {
 
 import styles from './burger-constructor.module.css';
 
-export const BurgerConstructor = memo(function BurgerConstructor(): React.JSX.Element {
+export const BurgerConstructor = memo(function BurgerConstructor({
+  onLogin,
+}: {
+  onLogin: () => void;
+}): React.JSX.Element {
   const { submitOrder } = useOrderSubmission();
+  const authStatus = useAppSelector(selectAuth).status;
+  const isCheckingSession = authStatus === 'unknown' || authStatus === 'checking';
   const { bun, ingredients } = useAppSelector(selectConstructorState);
   const orderPrice = useAppSelector(selectOrderPrice);
   const canOrder = useAppSelector(selectCanOrder);
@@ -34,7 +41,11 @@ export const BurgerConstructor = memo(function BurgerConstructor(): React.JSX.El
     []
   );
   const handleOrderClick = useCallback((): void => {
-    if (!canOrder || !bun) return;
+    if (!canOrder || !bun || isCheckingSession) return;
+    if (authStatus !== 'authenticated') {
+      onLogin();
+      return;
+    }
 
     // Передаём состав на момент нажатия, сохраняя порядок и повторяющиеся ингредиенты.
     // Одна выбранная булка представлена двумя идентификаторами: сверху и снизу.
@@ -43,7 +54,7 @@ export const BurgerConstructor = memo(function BurgerConstructor(): React.JSX.El
       ...ingredients.map(({ ingredient }) => ingredient._id),
       bun._id,
     ]);
-  }, [bun, canOrder, ingredients, submitOrder]);
+  }, [authStatus, bun, canOrder, ingredients, isCheckingSession, onLogin, submitOrder]);
 
   console.log('BurgerConstructor', bun, ingredients);
 
@@ -137,7 +148,7 @@ export const BurgerConstructor = memo(function BurgerConstructor(): React.JSX.El
 
         <Button
           onClick={handleOrderClick}
-          disabled={!canOrder}
+          disabled={!canOrder || isCheckingSession}
           size="large"
           type="primary"
           htmlType={'button'}

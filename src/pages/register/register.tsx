@@ -1,0 +1,96 @@
+import { Button, EmailInput, Input } from '@krgaa/react-developer-burger-ui-components';
+import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+
+import { useAuthSubmission } from '@hooks/use-auth-submission';
+import { useForm } from '@hooks/use-form';
+import { useRegisterMutation } from '@services/api/burger-api';
+
+import type { FormEvent } from 'react';
+
+import styles from './register.module.css';
+
+export const RegisterPage = (): React.JSX.Element => {
+  const { values: form, handleChange } = useForm({ name: '', email: '', password: '' });
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const location = useLocation();
+  const [register, { isLoading }] = useRegisterMutation();
+  const { error, submit } = useAuthSubmission(
+    (values: typeof form) => register(values),
+    'Не удалось зарегистрироваться. Проверьте данные и повторите попытку.'
+  );
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
+    event.preventDefault();
+    void submit(form);
+  };
+
+  return (
+    <main className={styles.main}>
+      <form
+        className={styles.form}
+        onSubmit={handleSubmit}
+        aria-labelledby="register-title"
+        aria-busy={isLoading}
+      >
+        <h1 id="register-title" className="text text_type_main-medium">
+          Регистрация
+        </h1>
+        <Input
+          name="name"
+          type="text"
+          placeholder="Имя"
+          aria-label="Имя"
+          autoComplete="name"
+          value={form.name}
+          onChange={handleChange}
+          required
+        />
+        <EmailInput
+          name="email"
+          placeholder="E-mail"
+          aria-label="E-mail"
+          autoComplete="email"
+          value={form.email}
+          onChange={handleChange}
+          errorText="Введите корректный e-mail"
+          required
+        />
+        <Input
+          name="password"
+          type={isPasswordVisible ? 'text' : 'password'}
+          placeholder="Пароль"
+          aria-label="Пароль"
+          autoComplete="new-password"
+          value={form.password}
+          onChange={handleChange}
+          icon={isPasswordVisible ? 'HideIcon' : 'ShowIcon'}
+          onIconClick={() => setIsPasswordVisible((visible) => !visible)}
+          required
+        />
+        <Button
+          disabled={isLoading}
+          htmlType="submit"
+          type="primary"
+          size="medium"
+          extraClass={styles.submit}
+        >
+          {isLoading ? 'Регистрируем…' : 'Зарегистрироваться'}
+        </Button>
+        {error && (
+          <p role="alert" className="text text_type_main-default">
+            {error}
+          </p>
+        )}
+      </form>
+      <p
+        className={`${styles.actions} text text_type_main-default text_color_inactive mt-20`}
+      >
+        Уже зарегистрированы?{' '}
+        <Link to="/login" state={location.state as unknown} className={styles.link}>
+          Войти
+        </Link>
+      </p>
+    </main>
+  );
+};

@@ -1,0 +1,92 @@
+import { Button, EmailInput, Input } from '@krgaa/react-developer-burger-ui-components';
+import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+
+import { useAuthSubmission } from '@hooks/use-auth-submission';
+import { useForm } from '@hooks/use-form';
+import { useLoginMutation } from '@services/api/burger-api';
+
+import type { FormEvent } from 'react';
+
+import styles from './login.module.css';
+
+export const LoginPage = (): React.JSX.Element => {
+  const { values: form, handleChange } = useForm({ email: '', password: '' });
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const location = useLocation();
+  const [login, { isLoading }] = useLoginMutation();
+  const { error, submit } = useAuthSubmission(
+    (values: typeof form) => login(values),
+    'Не удалось войти. Проверьте данные и повторите попытку.'
+  );
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
+    event.preventDefault();
+    void submit(form);
+  };
+
+  return (
+    <main className={styles.main}>
+      <form
+        className={styles.form}
+        onSubmit={handleSubmit}
+        aria-labelledby="login-title"
+        aria-busy={isLoading}
+      >
+        <h1 id="login-title" className="text text_type_main-medium">
+          Вход
+        </h1>
+        <EmailInput
+          name="email"
+          placeholder="E-mail"
+          aria-label="E-mail"
+          autoComplete="email"
+          value={form.email}
+          onChange={handleChange}
+          errorText="Введите корректный e-mail"
+          required
+        />
+        <Input
+          name="password"
+          type={isPasswordVisible ? 'text' : 'password'}
+          placeholder="Пароль"
+          aria-label="Пароль"
+          autoComplete="current-password"
+          value={form.password}
+          onChange={handleChange}
+          icon={isPasswordVisible ? 'HideIcon' : 'ShowIcon'}
+          onIconClick={() => setIsPasswordVisible((visible) => !visible)}
+          required
+        />
+        <Button
+          disabled={isLoading}
+          htmlType="submit"
+          type="primary"
+          size="medium"
+          extraClass={styles.submit}
+        >
+          {isLoading ? 'Входим…' : 'Войти'}
+        </Button>
+        {error && (
+          <p role="alert" className="text text_type_main-default">
+            {error}
+          </p>
+        )}
+      </form>
+      <div className={`${styles.actions} mt-20`}>
+        <p className="text text_type_main-default text_color_inactive">
+          Вы — новый пользователь?{' '}
+          <Link to="/register" state={location.state as unknown} className={styles.link}>
+            Зарегистрироваться
+          </Link>
+        </p>
+        <p className="text text_type_main-default text_color_inactive mt-4">
+          Забыли пароль?{' '}
+          <Link to="/forgot-password" className={styles.link}>
+            Восстановить пароль
+          </Link>
+        </p>
+      </div>
+    </main>
+  );
+};

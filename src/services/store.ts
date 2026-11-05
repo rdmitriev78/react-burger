@@ -1,6 +1,7 @@
 import { combineSlices, configureStore } from '@reduxjs/toolkit';
 
 import { burgerApi } from './api/burger-api';
+import { authSlice } from './auth/auth-slice';
 import { constructorSlice } from './constructor/constructor-slice';
 import { modalSlice } from './modal/modal-slice';
 import { orderSlice } from './order/order-slice';
@@ -8,7 +9,13 @@ import { orderSlice } from './order/order-slice';
 import type { ThunkAction, UnknownAction } from '@reduxjs/toolkit';
 
 // combineSlices берёт reducer и reducerPath из каждого слайса и RTK Query API.
-const rootReducer = combineSlices(burgerApi, constructorSlice, modalSlice, orderSlice);
+export const rootReducer = combineSlices(
+  burgerApi,
+  authSlice,
+  constructorSlice,
+  modalSlice,
+  orderSlice
+);
 
 export type RootState = ReturnType<typeof rootReducer>;
 
