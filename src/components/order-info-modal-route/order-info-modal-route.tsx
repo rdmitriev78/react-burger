@@ -5,23 +5,32 @@ import { useAppDispatch } from '@hooks/redux';
 import {
   closeRouteModal,
   openErrorModal,
-  openFeedOrderModal,
+  openOrderInfoModal,
 } from '@services/modal/modal-slice';
-import { feedOrders } from '@utils/feed-data';
 
-export const FeedOrderModalRoute = (): null => {
+import type { TOrder } from '@app-types/order';
+
+type TOrderInfoModalRouteProps = {
+  orders: readonly TOrder[];
+  notFoundMessage: string;
+};
+
+export const OrderInfoModalRoute = ({
+  orders,
+  notFoundMessage,
+}: TOrderInfoModalRouteProps): null => {
   const { id } = useParams<{ id: string }>();
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    const order = feedOrders.find((candidate) => candidate.id === id);
-    if (order) dispatch(openFeedOrderModal(order));
+    const order = orders.find((candidate) => candidate.id === id);
+    if (order) dispatch(openOrderInfoModal(order));
     else
       dispatch(
         openErrorModal({
           source: 'route',
           title: 'Заказ не найден',
-          message: 'Проверьте ссылку или выберите другой заказ в ленте.',
+          message: notFoundMessage,
           buttonText: 'Закрыть',
         })
       );
@@ -29,7 +38,7 @@ export const FeedOrderModalRoute = (): null => {
     return (): void => {
       dispatch(closeRouteModal());
     };
-  }, [dispatch, id]);
+  }, [dispatch, id, notFoundMessage, orders]);
 
   return null;
 };

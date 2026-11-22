@@ -1,14 +1,14 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { FeedOrderDetails } from '@components/feed-order-details/feed-order-details';
+import { OrderInfo } from '@components/order-info/order-info';
 import { feedOrders } from '@utils/feed-data';
 
 afterEach(cleanup);
 
-describe('детали заказа ленты', () => {
+describe('информация о заказе', () => {
   it('объединяет повторы в строки и показывает общий итог', () => {
-    render(<FeedOrderDetails order={feedOrders[4]} />);
+    render(<OrderInfo order={feedOrders[4]} />);
     const items = within(
       screen.getByRole('list', { name: 'Состав заказа' })
     ).getAllByRole('listitem');
@@ -23,7 +23,7 @@ describe('детали заказа ленты', () => {
     [2, 'Выполнен'],
     [7, 'Готовится'],
   ] as const)('показывает данные и статус выбранного заказа %i', (index, status) => {
-    render(<FeedOrderDetails order={feedOrders[index]} />);
+    render(<OrderInfo order={feedOrders[index]} />);
     expect(
       screen.getByRole('heading', { name: feedOrders[index].name })
     ).toBeInTheDocument();

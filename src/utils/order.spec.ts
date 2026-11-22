@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { feedIngredients, feedOrders } from '@utils/feed-data';
-import { getFeedOrderSummary } from '@utils/feed-order';
+import { demoOrderIngredients, feedOrders } from '@utils/feed-data';
+import { getOrderSummary } from '@utils/order';
 
-describe('состав заказа ленты', () => {
+describe('состав заказа', () => {
   it('учитывает двойную булку и повторную начинку, сохраняя порядок', () => {
-    const summary = getFeedOrderSummary(feedOrders[4]);
+    const summary = getOrderSummary(feedOrders[4]);
     expect(
       summary.items.map(({ ingredient, quantity }) => [ingredient.type, quantity])
     ).toEqual([
@@ -21,9 +21,9 @@ describe('состав заказа ленты', () => {
 
   it('использует один состав для полной суммы и сгруппированных строк', () => {
     for (const order of feedOrders) {
-      const { items, total } = getFeedOrderSummary(order);
+      const { items, total } = getOrderSummary(order);
       expect(total).toBe(
-        order.ingredients.reduce((sum, id) => sum + feedIngredients[id].price, 0)
+        order.ingredients.reduce((sum, id) => sum + demoOrderIngredients[id].price, 0)
       );
       expect(total).toBe(
         items.reduce(
@@ -32,8 +32,8 @@ describe('состав заказа ленты', () => {
         )
       );
     }
-    expect(
-      feedOrders.slice(0, 4).map((order) => getFeedOrderSummary(order).total)
-    ).toEqual([480, 560, 510, 370]);
+    expect(feedOrders.slice(0, 4).map((order) => getOrderSummary(order).total)).toEqual([
+      480, 560, 510, 370,
+    ]);
   });
 });

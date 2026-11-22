@@ -1,7 +1,3 @@
-.done {
-  color: var(--colors-interface-success);
-}
-
 .ingredients {
   display: flex;
   flex-direction: column;

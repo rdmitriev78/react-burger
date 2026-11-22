@@ -6,8 +6,8 @@ import { createMemoryRouter, Outlet, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from '@components/app/app';
-import { FeedOrderModalRoute } from '@components/feed-order-modal-route/feed-order-modal-route';
 import { IngredientModalRoute } from '@components/ingredient-modal-route/ingredient-modal-route';
+import { OrderInfoModalRoute } from '@components/order-info-modal-route/order-info-modal-route';
 import { FeedPage } from '@pages/feed/feed';
 import { burgerApi } from '@services/api/burger-api';
 import {
@@ -17,6 +17,7 @@ import {
 } from '@services/auth/auth-slice';
 import { createTestStorage } from '@services/auth/auth-test-utils';
 import { createTestStore } from '@services/store-test-utils';
+import { feedOrders } from '@utils/feed-data';
 import { ingredients } from '@utils/ingredients';
 
 describe('маршрутное окно ленты', () => {
@@ -33,7 +34,17 @@ describe('маршрутное окно ленты', () => {
             {
               path: 'feed',
               element: <FeedPage />,
-              children: [{ path: ':id', element: <FeedOrderModalRoute /> }],
+              children: [
+                {
+                  path: ':id',
+                  element: (
+                    <OrderInfoModalRoute
+                      orders={feedOrders}
+                      notFoundMessage="Проверьте ссылку или выберите другой заказ в ленте."
+                    />
+                  ),
+                },
+              ],
             },
             {
               path: '/',

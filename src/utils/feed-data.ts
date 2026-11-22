@@ -1,7 +1,7 @@
 import { ingredients } from '@utils/ingredients';
 
-import type { TFeedOrder } from '@app-types/feed-order';
 import type { TIngredient } from '@app-types/ingredient';
+import type { TOrder } from '@app-types/order';
 
 const bun = '60666c42cc7b410027a1a9b2';
 const craterBun = '60666c42cc7b410027a1a9b1';
@@ -34,7 +34,7 @@ const prices: Record<string, number> = {
   [spaceSauce]: 80,
 };
 
-export const feedIngredients: Record<string, TIngredient> = Object.fromEntries(
+export const demoOrderIngredients: Record<string, TIngredient> = Object.fromEntries(
   ingredients.map((ingredient) => [
     ingredient._id,
     { ...ingredient, price: prices[ingredient._id] ?? ingredient.price },
@@ -49,7 +49,7 @@ const date = (daysAgo: number, hoursAgo: number, minutesAgo: number): string =>
   ).toISOString();
 
 // Повторы, включая две половины булки, хранятся в составе явно.
-export const feedOrders: TFeedOrder[] = [
+export const feedOrders: TOrder[] = [
   {
     id: '34535',
     number: 34535,

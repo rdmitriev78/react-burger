@@ -9,7 +9,11 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   plugins: [
     checker({
-      typescript: true,
+      // Корневой tsconfig содержит references на проекты приложения и конфигурации.
+      typescript: {
+        tsconfigPath: 'tsconfig.json',
+        buildMode: true,
+      },
     }),
     react(),
     readableClassnames(),

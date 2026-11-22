@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom';
 
-import { FeedOrderCard } from '@components/feed-order-card/feed-order-card';
 import { FeedStats } from '@components/feed-stats/feed-stats';
+import { OrderCard } from '@components/order-card/order-card';
 import { feedOrders } from '@utils/feed-data';
 
 import styles from './feed.module.css';
@@ -14,7 +14,7 @@ export const FeedPage = (): React.JSX.Element => (
         <ul className={`${styles.orders} custom-scroll`} aria-label="Заказы">
           {feedOrders.map((order) => (
             <li key={order.id}>
-              <FeedOrderCard order={order} />
+              <OrderCard order={order} basePath="/feed" showStatus={false} />
             </li>
           ))}
         </ul>

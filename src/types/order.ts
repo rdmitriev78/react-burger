@@ -1,4 +1,4 @@
-export type TFeedOrder = {
+export type TOrder = {
   id: string;
   number: number;
   name: string;

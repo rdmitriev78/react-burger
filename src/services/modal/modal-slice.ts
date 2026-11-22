@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-import type { TFeedOrder } from '@app-types/feed-order';
 import type { TIngredient } from '@app-types/ingredient';
+import type { TOrder } from '@app-types/order';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { TErrorModalState, TModalState } from '@services/modal/modal-slice.types';
 
@@ -11,8 +11,8 @@ export const modalSlice = createSlice({
   name: 'modal',
   initialState: (): TModalState => ({ type: 'closed' }),
   reducers: {
-    openFeedOrderModal: (_state, action: PayloadAction<TFeedOrder>): TModalState => ({
-      type: 'feed-order',
+    openOrderInfoModal: (_state, action: PayloadAction<TOrder>): TModalState => ({
+      type: 'order-info',
       source: 'route',
       order: action.payload,
     }),
@@ -46,7 +46,7 @@ export const modalSlice = createSlice({
 });
 
 export const {
-  openFeedOrderModal,
+  openOrderInfoModal,
   openIngredientModal,
   openOrderModal,
   openErrorModal,

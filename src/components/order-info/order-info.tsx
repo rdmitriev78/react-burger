@@ -4,28 +4,23 @@ import {
 } from '@krgaa/react-developer-burger-ui-components';
 
 import { IngredientPreview } from '@components/ingredient-preview/ingredient-preview';
-import { getFeedOrderSummary } from '@utils/feed-order';
+import { OrderStatus } from '@components/order-status/order-status';
+import { getOrderSummary } from '@utils/order';
 
-import type { TFeedOrder } from '@app-types/feed-order';
+import type { TOrder } from '@app-types/order';
 
-import styles from './feed-order-details.module.css';
+import styles from './order-info.module.css';
 
-const statuses = { created: 'Создан', pending: 'Готовится', done: 'Выполнен' };
+type TOrderInfoProps = {
+  order: TOrder;
+};
 
-export const FeedOrderDetails = ({
-  order,
-}: {
-  order: TFeedOrder;
-}): React.JSX.Element => {
-  const { items, total } = getFeedOrderSummary(order);
+export const OrderInfo = ({ order }: TOrderInfoProps): React.JSX.Element => {
+  const { items, total } = getOrderSummary(order);
   return (
     <div className="mt-5">
       <h3 className="text text_type_main-medium">{order.name}</h3>
-      <p
-        className={`text text_type_main-default mt-2 ${order.status === 'done' ? styles.done : ''}`}
-      >
-        {statuses[order.status]}
-      </p>
+      <OrderStatus status={order.status} />
       <h3 className="text text_type_main-medium mt-15 mb-6">Состав:</h3>
       <ul
         className={`${styles.ingredients} custom-scroll`}

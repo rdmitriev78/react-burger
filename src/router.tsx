@@ -1,11 +1,13 @@
 import { createBrowserRouter } from 'react-router-dom';
 
 import { App } from '@components/app/app';
-import { FeedOrderModalRoute } from '@components/feed-order-modal-route/feed-order-modal-route';
 import { IngredientModalRoute } from '@components/ingredient-modal-route/ingredient-modal-route';
+import { OrderInfoModalRoute } from '@components/order-info-modal-route/order-info-modal-route';
 import { ProtectedRoute } from '@components/protected-route/protected-route';
 import { RequestLoading } from '@components/request-loading/request-loading';
 import { RouteError } from '@pages/route-error/route-error';
+import { feedOrders } from '@utils/feed-data';
+import { profileOrders } from '@utils/profile-orders-data';
 
 import type { ComponentType } from 'react';
 
@@ -57,6 +59,17 @@ export const router = createBrowserRouter([
                   Component: (await import('@pages/profile-order/profile-order'))
                     .ProfileOrderPage,
                 }),
+                children: [
+                  {
+                    path: ':id',
+                    element: (
+                      <OrderInfoModalRoute
+                        orders={profileOrders}
+                        notFoundMessage="Проверьте ссылку или выберите другой заказ в истории."
+                      />
+                    ),
+                  },
+                ],
               },
             ],
           },
@@ -67,7 +80,17 @@ export const router = createBrowserRouter([
         lazy: async (): Promise<TRouteModule> => ({
           Component: (await import('@pages/feed/feed')).FeedPage,
         }),
-        children: [{ path: ':id', element: <FeedOrderModalRoute /> }],
+        children: [
+          {
+            path: ':id',
+            element: (
+              <OrderInfoModalRoute
+                orders={feedOrders}
+                notFoundMessage="Проверьте ссылку или выберите другой заказ в ленте."
+              />
+            ),
+          },
+        ],
       },
       {
         element: <ProtectedRoute onlyGuest />,

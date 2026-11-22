@@ -1,5 +1,5 @@
 import { feedOrders, feedTotals } from '@utils/feed-data';
-import { formatFeedOrderNumber } from '@utils/feed-order';
+import { formatOrderNumber } from '@utils/order';
 
 import styles from './feed-stats.module.css';
 
@@ -19,7 +19,7 @@ export const FeedStats = (): React.JSX.Element => (
               .filter((order) => order.status === status)
               .map((order) => (
                 <li key={order.id} className="text text_type_digits-default">
-                  {formatFeedOrderNumber(order.number)}
+                  {formatOrderNumber(order.number)}
                 </li>
               ))}
           </ul>

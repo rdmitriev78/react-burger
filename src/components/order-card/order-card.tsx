@@ -5,20 +5,31 @@ import {
 import { Link } from 'react-router-dom';
 
 import { IngredientPreview } from '@components/ingredient-preview/ingredient-preview';
-import { formatFeedOrderNumber, getFeedOrderSummary } from '@utils/feed-order';
+import { OrderStatus } from '@components/order-status/order-status';
+import { formatOrderNumber, getOrderSummary } from '@utils/order';
 
-import type { TFeedOrder } from '@app-types/feed-order';
+import type { TOrder } from '@app-types/order';
 
-import styles from './feed-order-card.module.css';
+import styles from './order-card.module.css';
 
-export const FeedOrderCard = ({ order }: { order: TFeedOrder }): React.JSX.Element => {
-  const { items, total } = getFeedOrderSummary(order);
-  const number = formatFeedOrderNumber(order.number);
+type TOrderCardProps = {
+  order: TOrder;
+  basePath: '/feed' | '/profile/orders';
+  showStatus: boolean;
+};
+
+export const OrderCard = ({
+  order,
+  basePath,
+  showStatus,
+}: TOrderCardProps): React.JSX.Element => {
+  const { items, total } = getOrderSummary(order);
+  const number = formatOrderNumber(order.number);
   return (
     <Link
       className={`${styles.card} p-6`}
-      to={`/feed/${order.id}`}
-      state={{ fromFeed: true }}
+      to={`${basePath}/${order.id}`}
+      state={basePath === '/feed' ? { fromFeed: true } : { fromProfileOrders: true }}
       aria-label={`Заказ #${number}: ${order.name}`}
     >
       <div className={styles.meta}>
@@ -28,7 +39,10 @@ export const FeedOrderCard = ({ order }: { order: TFeedOrder }): React.JSX.Eleme
           className="text text_type_main-default text_color_inactive"
         />
       </div>
-      <h2 className="text text_type_main-medium">{order.name}</h2>
+      <div>
+        <h2 className="text text_type_main-medium">{order.name}</h2>
+        {showStatus && <OrderStatus status={order.status} />}
+      </div>
       <div className={styles.footer}>
         <div className={styles.previews}>
           {items.slice(0, 6).map(({ ingredient }, index) => (

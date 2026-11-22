@@ -1,12 +1,19 @@
+import { Outlet } from 'react-router-dom';
+
+import { OrderCard } from '@components/order-card/order-card';
+import { profileOrders } from '@utils/profile-orders-data';
+
 import styles from './profile-order.module.css';
 
 export const ProfileOrderPage = (): React.JSX.Element => (
-  <section className={styles.section} aria-labelledby="profile-orders-title">
-    <h1 id="profile-orders-title" className="text text_type_main-medium mt-10 mb-6">
-      История заказов
-    </h1>
-    <p className="text text_type_main-default text_color_inactive">
-      Страница находится в разработке
-    </p>
+  <section className={styles.section} aria-label="История заказов">
+    <ul className={`${styles.orders} custom-scroll`} aria-label="Заказы пользователя">
+      {profileOrders.map((order) => (
+        <li key={order.id}>
+          <OrderCard order={order} basePath="/profile/orders" showStatus={true} />
+        </li>
+      ))}
+    </ul>
+    <Outlet />
   </section>
 );
