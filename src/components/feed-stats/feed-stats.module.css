@@ -1,0 +1,47 @@
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: 60px;
+  min-width: 0;
+}
+
+.statuses {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+}
+
+.numbers {
+  display: flex;
+  flex-flow: column wrap;
+  gap: 8px 16px;
+  max-height: 320px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.done {
+  color: var(--colors-interface-success);
+}
+
+.total {
+  text-shadow:
+    0 4px 32px rgb(51 51 255 / 50%),
+    0 0 8px rgb(51 51 255 / 25%),
+    0 0 16px rgb(51 51 255 / 25%);
+}
+
+@media (width <= 600px) {
+  .stats {
+    gap: 32px;
+  }
+
+  .statuses {
+    gap: 16px;
+  }
+
+  .total {
+    font-size: clamp(64px, 18vw, 100px);
+  }
+}

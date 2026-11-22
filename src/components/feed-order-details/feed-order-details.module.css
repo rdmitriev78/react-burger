@@ -1,0 +1,78 @@
+.done {
+  color: var(--colors-interface-success);
+}
+
+.ingredients {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 312px;
+  margin: 0;
+  padding: 0 24px 0 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.ingredients:focus-visible {
+  outline: 2px solid #8585ff;
+  outline-offset: 4px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.price {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 40px;
+}
+
+@media (width <= 600px) {
+  .ingredients {
+    padding-right: 8px;
+  }
+
+  .item {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .item > :first-child {
+    grid-row: span 2;
+    width: 48px;
+    height: 48px;
+  }
+
+  .price {
+    font-size: 20px;
+  }
+
+  .footer {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .footer > :last-child {
+    margin-left: auto;
+  }
+}

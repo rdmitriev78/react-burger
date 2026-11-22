@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 
 import { App } from '@components/app/app';
+import { FeedOrderModalRoute } from '@components/feed-order-modal-route/feed-order-modal-route';
 import { IngredientModalRoute } from '@components/ingredient-modal-route/ingredient-modal-route';
 import { ProtectedRoute } from '@components/protected-route/protected-route';
 import { RequestLoading } from '@components/request-loading/request-loading';
@@ -66,6 +67,7 @@ export const router = createBrowserRouter([
         lazy: async (): Promise<TRouteModule> => ({
           Component: (await import('@pages/feed/feed')).FeedPage,
         }),
+        children: [{ path: ':id', element: <FeedOrderModalRoute /> }],
       },
       {
         element: <ProtectedRoute onlyGuest />,

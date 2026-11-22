@@ -1,3 +1,4 @@
+import type { TFeedOrder } from '@app-types/feed-order';
 import type { TIngredient } from '@app-types/ingredient';
 
 // Источник определяет способ управления окном, а не адрес страницы, на которой его открыли.
@@ -7,6 +8,7 @@ export type TModalState =
   | { type: 'closed' }
   | { type: 'ingredient'; source: 'route'; ingredient: TIngredient }
   | { type: 'order'; source: 'application' }
+  | { type: 'feed-order'; source: 'route'; order: TFeedOrder }
   | {
       type: 'error';
       source: TModalSource;
