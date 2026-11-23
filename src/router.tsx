@@ -6,8 +6,6 @@ import { OrderInfoModalRoute } from '@components/order-info-modal-route/order-in
 import { ProtectedRoute } from '@components/protected-route/protected-route';
 import { RequestLoading } from '@components/request-loading/request-loading';
 import { RouteError } from '@pages/route-error/route-error';
-import { feedOrders } from '@utils/feed-data';
-import { profileOrders } from '@utils/profile-orders-data';
 
 import type { ComponentType } from 'react';
 
@@ -62,12 +60,7 @@ export const router = createBrowserRouter([
                 children: [
                   {
                     path: ':id',
-                    element: (
-                      <OrderInfoModalRoute
-                        orders={profileOrders}
-                        notFoundMessage="Проверьте ссылку или выберите другой заказ в истории."
-                      />
-                    ),
+                    element: <OrderInfoModalRoute />,
                   },
                 ],
               },
@@ -83,12 +76,7 @@ export const router = createBrowserRouter([
         children: [
           {
             path: ':id',
-            element: (
-              <OrderInfoModalRoute
-                orders={feedOrders}
-                notFoundMessage="Проверьте ссылку или выберите другой заказ в ленте."
-              />
-            ),
+            element: <OrderInfoModalRoute />,
           },
         ],
       },

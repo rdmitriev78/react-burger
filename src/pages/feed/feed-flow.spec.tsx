@@ -1,3 +1,8 @@
+import { testIngredients as ingredients } from '@/test/fixtures/ingredients/ingredients';
+import { publicSnapshot } from '@/test/fixtures/orders/order-streams';
+import { repeatedOrder } from '@/test/fixtures/orders/orders';
+import { FakeWebSocket } from '@/test/helpers/fake-websocket';
+import { installOrderTransport } from '@/test/helpers/order-transport';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StrictMode } from 'react';
@@ -16,14 +21,14 @@ import {
   sessionFailed,
 } from '@services/auth/auth-slice';
 import { createTestStorage } from '@services/auth/auth-test-utils';
+import { saveTokens } from '@services/auth/token-storage';
 import { createTestStore } from '@services/store-test-utils';
-import { feedOrders } from '@utils/feed-data';
-import { ingredients } from '@utils/ingredients';
 
 describe('маршрутное окно ленты', () => {
   let store: ReturnType<typeof createTestStore>;
   let router: ReturnType<typeof createMemoryRouter>;
   let unsubscribe: (() => void) | undefined;
+  let transport: ReturnType<typeof installOrderTransport>;
 
   const mount = (path = '/feed'): void => {
     router = createMemoryRouter(
@@ -37,12 +42,7 @@ describe('маршрутное окно ленты', () => {
               children: [
                 {
                   path: ':id',
-                  element: (
-                    <OrderInfoModalRoute
-                      orders={feedOrders}
-                      notFoundMessage="Проверьте ссылку или выберите другой заказ в ленте."
-                    />
-                  ),
+                  element: <OrderInfoModalRoute />,
                 },
               ],
             },
@@ -90,6 +90,8 @@ describe('маршрутное окно ленты', () => {
     vi.spyOn(HTMLElement.prototype, 'getClientRects').mockReturnValue([
       new DOMRect(0, 0, 10, 10),
     ] as unknown as DOMRectList);
+    transport = installOrderTransport();
+    saveTokens({ accessToken: 'Bearer test', refreshToken: 'refresh' });
     store = createTestStore();
   });
 
@@ -104,12 +106,12 @@ describe('маршрутное окно ленты', () => {
 
   it('открывает карточку с клавиатуры, удерживает фокус и возвращает его после Escape', async () => {
     mount();
-    const card = screen.getByRole('link', { name: /Заказ #034533/ });
+    const card = await screen.findByRole('link', { name: /Заказ #034530/ });
     card.focus();
     await userEvent.keyboard('{Enter}');
     const dialog = await screen.findByRole('dialog', { name: 'Информация о заказе' });
-    expect(router.state.location.pathname).toBe('/feed/34533');
-    expect(within(dialog).getByText('510')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/feed/100000000000000000000003');
+    expect(await within(dialog).findByText('250')).toBeInTheDocument();
     expect(document.getElementById('root')?.inert).toBe(true);
     expect(document.body.style.overflow).toBe('hidden');
     const close = within(dialog).getByRole('button', { name: 'Закрыть окно' });
@@ -129,10 +131,12 @@ describe('маршрутное окно ленты', () => {
   });
 
   it('по прямому URL открывает окно без state и заменяет его лентой при закрытии', async () => {
-    mount('/feed/34534');
+    mount('/feed/100000000000000000000002');
     const dialog = await screen.findByRole('dialog', { name: 'Информация о заказе' });
     expect(
-      within(dialog).getByRole('heading', { name: 'Interstellar бургер' })
+      await within(dialog).findByRole('heading', {
+        name: 'Interstellar бургер с длинным названием для межзвёздного путешествия',
+      })
     ).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Закрыть окно' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/feed'));
@@ -142,14 +146,14 @@ describe('маршрутное окно ленты', () => {
 
   it('согласовывает окно с Back/Forward и сменой id, очищает его при уходе', async () => {
     mount();
-    await userEvent.click(screen.getByRole('link', { name: /Заказ #034533/ }));
+    await userEvent.click(await screen.findByRole('link', { name: /Заказ #034530/ }));
     await screen.findByRole('dialog');
     await act(() => router.navigate(-1));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     await act(() => router.navigate(1));
-    expect(within(screen.getByRole('dialog')).getByText('#034533')).toBeInTheDocument();
-    await act(() => router.navigate('/feed/34542'));
-    expect(within(screen.getByRole('dialog')).getByText('#034542')).toBeInTheDocument();
+    expect(within(screen.getByRole('dialog')).getByText('#034530')).toBeInTheDocument();
+    await act(() => router.navigate('/feed/100000000000000000000002'));
+    expect(within(screen.getByRole('dialog')).getByText('#034534')).toBeInTheDocument();
     expect(
       within(screen.getByRole('dialog')).getByText('Готовится')
     ).toBeInTheDocument();
@@ -167,7 +171,7 @@ describe('маршрутное окно ленты', () => {
   });
 
   it('сохраняет публичные детали при проверке, ошибке и подтверждении сессии', async () => {
-    mount('/feed/34533');
+    mount('/feed/100000000000000000000003');
     await screen.findByRole('dialog');
     for (const action of [
       checkingSession(),
@@ -180,7 +184,7 @@ describe('маршрутное окно ленты', () => {
       expect(
         screen.getByRole('dialog', { name: 'Информация о заказе' })
       ).toBeInTheDocument();
-      expect(router.state.location.pathname).toBe('/feed/34533');
+      expect(router.state.location.pathname).toBe('/feed/100000000000000000000003');
     }
   });
 
@@ -193,5 +197,169 @@ describe('маршрутное окно ленты', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Закрыть окно' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
     expect(screen.getByRole('link', { name: 'Конструктор' })).toHaveFocus();
+  });
+
+  const getCalls = (): number =>
+    transport.mock.calls.filter(([input]) => (input as Request).url.includes('/orders/'))
+      .length;
+
+  it('ждёт первый снимок и не делает GET для присутствующего заказа', async () => {
+    FakeWebSocket.onCreate = undefined;
+    mount(`/feed/${repeatedOrder._id}`);
+    await screen.findByText('Загружаем заказ…');
+    expect(getCalls()).toBe(0);
+    await waitFor(() => expect(FakeWebSocket.instances.length).toBeGreaterThan(0));
+    act(() => FakeWebSocket.instances.at(-1)!.receive(publicSnapshot));
+    await within(screen.getByRole('dialog')).findByText('250');
+    expect(getCalls()).toBe(0);
+  });
+
+  it('отображает пустой снимок и сохраняет последний список при разрыве', async () => {
+    mount();
+    await screen.findByRole('link', { name: /Заказ #034530/ });
+    const socket = FakeWebSocket.instances.at(-1)!;
+    act(() => socket.fail());
+    expect(await screen.findByRole('status')).toHaveTextContent('Связь потеряна');
+    expect(screen.getByRole('link', { name: /Заказ #034530/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Повторить подключение' }));
+    await screen.findByRole('link', { name: /Заказ #034530/ });
+    act(() =>
+      FakeWebSocket.instances.at(-1)!.receive({ ...publicSnapshot, orders: [] })
+    );
+    expect(await screen.findByText('Заказов пока нет')).toBeInTheDocument();
+  });
+
+  it('обновляет открытый заказ без сброса фокуса и повторного GET', async () => {
+    mount(`/feed/${repeatedOrder._id}`);
+    const dialog = await screen.findByRole('dialog');
+    const list = await within(dialog).findByRole('list', { name: 'Состав заказа' });
+    list.focus();
+    act(() =>
+      FakeWebSocket.instances.at(-1)!.receive({
+        ...publicSnapshot,
+        orders: [{ ...repeatedOrder, status: 'pending' }],
+      })
+    );
+    expect(await within(dialog).findByText('Готовится')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBe(dialog);
+    expect(list).toHaveFocus();
+    expect(getCalls()).toBe(0);
+  });
+
+  it.each([{ status: 'wrong' }, { ingredients: ['unknown'] }])(
+    'не запрашивает заново непригодный заказ %o',
+    async (patch) => {
+      transport = installOrderTransport({
+        ...publicSnapshot,
+        orders: [{ ...repeatedOrder, ...patch }],
+      });
+      mount(`/feed/${repeatedOrder._id}`);
+      await screen.findByRole('dialog', { name: 'Некорректные данные заказа' });
+      expect(getCalls()).toBe(0);
+    }
+  );
+
+  it('запрашивает отсутствующий заказ один раз, не повторяя GET на каждом снимке', async () => {
+    transport = installOrderTransport({ ...publicSnapshot, orders: [] });
+    const original = transport.getMockImplementation()!;
+    transport.mockImplementation((input, init) =>
+      (input as Request).url.includes('/orders/')
+        ? Promise.resolve(
+            new Response(JSON.stringify({ success: true, order: repeatedOrder }), {
+              headers: { 'Content-Type': 'application/json' },
+            })
+          )
+        : original(input, init)
+    );
+    mount(`/feed/${repeatedOrder._id}`);
+    await within(await screen.findByRole('dialog')).findByText('250');
+    act(() =>
+      FakeWebSocket.instances.at(-1)!.receive({ ...publicSnapshot, orders: [] })
+    );
+    expect(getCalls()).toBe(1);
+  });
+
+  it('показывает 404 отдельно от временной ошибки GET и позволяет повтор', async () => {
+    transport = installOrderTransport({ ...publicSnapshot, orders: [] });
+    const original = transport.getMockImplementation()!;
+    let status = 503;
+    transport.mockImplementation((input, init) =>
+      (input as Request).url.includes('/orders/')
+        ? Promise.resolve(
+            new Response('{}', {
+              status,
+              headers: { 'Content-Type': 'application/json' },
+            })
+          )
+        : original(input, init)
+    );
+    mount(`/feed/${repeatedOrder._id}`);
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Не удалось загрузить заказ',
+    });
+    status = 404;
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Повторить' }));
+    await screen.findByRole('dialog', { name: 'Заказ не найден' });
+    expect(getCalls()).toBe(2);
+  });
+
+  it('поток имеет приоритет над поздним GET, уход не открывает старое окно', async () => {
+    transport = installOrderTransport({ ...publicSnapshot, orders: [] });
+    const original = transport.getMockImplementation()!;
+    let finish!: (response: Response) => void;
+    transport.mockImplementation((input, init) =>
+      (input as Request).url.includes('/orders/')
+        ? new Promise<Response>((resolve) => {
+            finish = resolve;
+          })
+        : original(input, init)
+    );
+    mount(`/feed/${repeatedOrder._id}`);
+    await waitFor(() => expect(getCalls()).toBe(1));
+    act(() =>
+      FakeWebSocket.instances.at(-1)!.receive({
+        ...publicSnapshot,
+        orders: [{ ...repeatedOrder, status: 'pending' }],
+      })
+    );
+    await within(screen.getByRole('dialog')).findByText('Готовится');
+    await act(async () => {
+      finish(
+        new Response(JSON.stringify({ success: true, order: repeatedOrder }), {
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+      await Promise.resolve();
+    });
+    expect(
+      within(screen.getByRole('dialog')).getByText('Готовится')
+    ).toBeInTheDocument();
+    await act(() => router.navigate('/'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('загружает детали через GET после выхода заказа из последних пятидесяти', async () => {
+    mount(`/feed/${repeatedOrder._id}`);
+    await within(await screen.findByRole('dialog')).findByText('250');
+    expect(getCalls()).toBe(0);
+    act(() =>
+      FakeWebSocket.instances.at(-1)!.receive({ ...publicSnapshot, orders: [] })
+    );
+    await screen.findByRole('dialog', { name: 'Заказ не найден' });
+    expect(getCalls()).toBe(1);
+  });
+
+  it('показывает ошибку каталога и позволяет повторить его загрузку', async () => {
+    const original = transport.getMockImplementation()!;
+    transport.mockImplementation((input, init) =>
+      (input as Request).url.endsWith('/ingredients')
+        ? Promise.resolve(new Response('{}', { status: 503 }))
+        : original(input, init)
+    );
+    mount();
+    await screen.findByText('Не удалось загрузить ингредиенты.');
+    transport.mockImplementation(original);
+    await userEvent.click(screen.getByRole('button', { name: 'Повторить' }));
+    await screen.findByRole('link', { name: /Заказ #034530/ });
   });
 });

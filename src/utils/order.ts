@@ -1,19 +1,16 @@
-import { demoOrderIngredients } from '@utils/feed-data';
-
-import type { TIngredient } from '@app-types/ingredient';
-import type { TOrder } from '@app-types/order';
-
-type TOrderItem = { ingredient: TIngredient; quantity: number };
+import type { TOrder, TOrderCatalog, TOrderSummary } from '@app-types/order';
 
 export const getOrderSummary = (
-  order: TOrder
-): { items: TOrderItem[]; total: number } => {
-  const grouped = new Map<string, TOrderItem>();
+  order: TOrder,
+  catalog: TOrderCatalog
+): TOrderSummary | undefined => {
+  const grouped = new Map<string, TOrderSummary['items'][number]>();
   let total = 0;
 
-  // Все id принадлежат локальному каталогу; порядок — первое появление в составе.
+  // Неизвестный ингредиент делает весь итог недостоверным: частичную сумму не показываем.
   for (const id of order.ingredients) {
-    const ingredient = demoOrderIngredients[id];
+    const ingredient = Object.hasOwn(catalog, id) ? catalog[id] : undefined;
+    if (!ingredient) return undefined;
     const existing = grouped.get(id);
     if (existing) existing.quantity += 1;
     else grouped.set(id, { ingredient, quantity: 1 });

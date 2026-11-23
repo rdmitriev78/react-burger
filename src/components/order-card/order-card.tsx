@@ -6,14 +6,14 @@ import { Link } from 'react-router-dom';
 
 import { IngredientPreview } from '@components/ingredient-preview/ingredient-preview';
 import { OrderStatus } from '@components/order-status/order-status';
-import { formatOrderNumber, getOrderSummary } from '@utils/order';
+import { formatOrderNumber } from '@utils/order';
 
-import type { TOrder } from '@app-types/order';
+import type { TOrderView } from '@app-types/order';
 
 import styles from './order-card.module.css';
 
 type TOrderCardProps = {
-  order: TOrder;
+  order: TOrderView;
   basePath: '/feed' | '/profile/orders';
   showStatus: boolean;
 };
@@ -23,7 +23,7 @@ export const OrderCard = ({
   basePath,
   showStatus,
 }: TOrderCardProps): React.JSX.Element => {
-  const { items, total } = getOrderSummary(order);
+  const { items, total } = order.summary;
   const number = formatOrderNumber(order.number);
   return (
     <Link

@@ -1,14 +1,22 @@
+import { testIngredients } from '@/test/fixtures/ingredients/ingredients';
+import { createdOrder, longOrder, repeatedOrder } from '@/test/fixtures/orders/orders';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { OrderInfo } from '@components/order-info/order-info';
-import { feedOrders } from '@utils/feed-data';
+import {
+  createOrderCatalog,
+  parseOrder,
+  prepareOrder,
+} from '@services/orders/order-data';
+
+const view = (raw: unknown): ReturnType<typeof prepareOrder> =>
+  prepareOrder(parseOrder(raw)!, createOrderCatalog(testIngredients));
 
 afterEach(cleanup);
-
 describe('информация о заказе', () => {
-  it('объединяет повторы в строки и показывает общий итог', () => {
-    render(<OrderInfo order={feedOrders[4]} />);
+  it('объединяет повторы в строки и показывает полный итог', () => {
+    render(<OrderInfo order={view(repeatedOrder)!} />);
     const items = within(
       screen.getByRole('list', { name: 'Состав заказа' })
     ).getAllByRole('listitem');
@@ -17,16 +25,13 @@ describe('информация о заказе', () => {
     expect(items[1]).toHaveTextContent('2 x 90');
     expect(screen.getByText('250')).toBeInTheDocument();
   });
-
   it.each([
-    [0, 'Создан'],
-    [2, 'Выполнен'],
-    [7, 'Готовится'],
-  ] as const)('показывает данные и статус выбранного заказа %i', (index, status) => {
-    render(<OrderInfo order={feedOrders[index]} />);
-    expect(
-      screen.getByRole('heading', { name: feedOrders[index].name })
-    ).toBeInTheDocument();
+    [createdOrder, 'Создан'],
+    [longOrder, 'Готовится'],
+    [repeatedOrder, 'Выполнен'],
+  ] as const)('показывает выбранный заказ %o', (raw, status) => {
+    render(<OrderInfo order={view(raw)!} />);
+    expect(screen.getByRole('heading', { name: raw.name })).toBeInTheDocument();
     expect(screen.getByText(status)).toBeInTheDocument();
   });
 });

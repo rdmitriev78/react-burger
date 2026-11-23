@@ -1,4 +1,8 @@
-import { combineSlices, configureStore } from '@reduxjs/toolkit';
+import {
+  combineSlices,
+  configureStore,
+  createListenerMiddleware,
+} from '@reduxjs/toolkit';
 
 import { burgerApi } from './api/burger-api';
 import { authSlice } from './auth/auth-slice';
@@ -21,9 +25,14 @@ export type RootState = ReturnType<typeof rootReducer>;
 
 export const store = configureStore({
   reducer: rootReducer,
-  // Подключение API к редьюсеру не добавляет middleware для запросов и кеша.
+  // Сохраняем стандартные middleware: thunk и проверки действий/состояния при разработке.
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(burgerApi.middleware),
+    getDefaultMiddleware()
+      // Слушатели повтора потока и смены сессии идут до проверки сериализуемости:
+      // действия их регистрации содержат функции.
+      .prepend(createListenerMiddleware().middleware)
+      // RTK Query обслуживает запросы, подписки и жизненный цикл кеша.
+      .concat(burgerApi.middleware),
 });
 
 export type AppDispatch = typeof store.dispatch;

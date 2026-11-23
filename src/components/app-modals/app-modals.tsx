@@ -1,3 +1,4 @@
+import { Button } from '@krgaa/react-developer-burger-ui-components';
 import { useCallback, useEffect, useRef } from 'react';
 import { useLocation, useMatch, useNavigate } from 'react-router-dom';
 
@@ -6,14 +7,20 @@ import { IngredientDetails } from '@components/ingredient-details/ingredient-det
 import { Modal } from '@components/modal/modal';
 import { OrderDetails } from '@components/order-details/order-details';
 import { OrderInfo } from '@components/order-info/order-info';
+import { RequestLoading } from '@components/request-loading/request-loading';
 import { useAppDispatch, useAppSelector } from '@hooks/redux';
+import { burgerApi } from '@services/api/burger-api';
 import { closeModal, selectModal } from '@services/modal/modal-slice';
 import { selectOrderSubmission } from '@services/order/order-slice';
+import { retryOrderStream } from '@services/orders/order-stream';
 import { formatOrderNumber } from '@utils/order';
 
 import type { TIngredient } from '@app-types/ingredient';
+import type { TOrderInfoModal, TOrderInfoView } from '@services/modal/modal-slice.types';
 import type { TOrderState } from '@services/order/order-slice.types';
 import type { RefObject } from 'react';
+
+import styles from './app-modals.module.css';
 
 const orderModalLabels = {
   submitting: 'Оформление заказа',
@@ -59,6 +66,56 @@ const OrderModal = ({ onClose }: TOrderModalProps): React.JSX.Element | null => 
     >
       <OrderDetails order={order} />
     </Modal>
+  );
+};
+
+type TOrderInfoErrorProps = Pick<TOrderInfoModal, 'scope' | 'id'> & {
+  view: Extract<TOrderInfoView, { status: 'error' }>;
+  onClose: () => void;
+};
+
+const OrderInfoError = ({
+  view,
+  scope,
+  id,
+  onClose,
+}: TOrderInfoErrorProps): React.JSX.Element => {
+  const dispatch = useAppDispatch();
+
+  const handleRetry = (): void => {
+    if (view.retry === 'stream') dispatch(retryOrderStream(scope));
+    else if (view.retry === 'catalog')
+      void dispatch(
+        burgerApi.endpoints.getIngredients.initiate(undefined, {
+          subscribe: false,
+          forceRefetch: true,
+        })
+      );
+    else
+      void dispatch(
+        burgerApi.endpoints.getOrder.initiate(
+          { id, scope },
+          { subscribe: false, forceRefetch: true }
+        )
+      );
+  };
+
+  return (
+    <>
+      <p role="alert" className="text text_type_main-default mb-6">
+        {view.message}
+      </p>
+      <div className={styles.actions}>
+        {view.retry && (
+          <Button onClick={handleRetry} size="medium" type="primary" htmlType="button">
+            Повторить
+          </Button>
+        )}
+        <Button onClick={onClose} size="medium" type="primary" htmlType="button">
+          Закрыть
+        </Button>
+      </div>
+    </>
   );
 };
 
@@ -160,13 +217,34 @@ export const AppModals = ({
     case 'order-info':
       return (
         <Modal
-          title={`#${formatOrderNumber(modal.order.number)}`}
-          titleClassName="text text_type_digits-default"
-          ariaLabel="Информация о заказе"
+          title={
+            modal.view.status === 'ready'
+              ? `#${formatOrderNumber(modal.view.order.number)}`
+              : modal.view.status === 'error'
+                ? modal.view.title
+                : 'Информация о заказе'
+          }
+          titleClassName={
+            modal.view.status === 'ready' ? 'text text_type_digits-default' : undefined
+          }
+          ariaLabel={
+            modal.view.status === 'error' ? modal.view.title : 'Информация о заказе'
+          }
           onClose={handleClose}
           getFallbackFocus={getRouteFallbackFocus}
         >
-          <OrderInfo order={modal.order} />
+          {modal.view.status === 'ready' && <OrderInfo order={modal.view.order} />}
+          {modal.view.status === 'loading' && (
+            <RequestLoading message={modal.view.message} />
+          )}
+          {modal.view.status === 'error' && (
+            <OrderInfoError
+              view={modal.view}
+              scope={modal.scope}
+              id={modal.id}
+              onClose={handleClose}
+            />
+          )}
         </Modal>
       );
     case 'error':

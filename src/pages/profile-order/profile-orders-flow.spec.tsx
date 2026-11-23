@@ -1,3 +1,5 @@
+import { personalSnapshot } from '@/test/fixtures/orders/order-streams';
+import { installOrderTransport } from '@/test/helpers/order-transport';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StrictMode } from 'react';
@@ -20,8 +22,8 @@ import {
   sessionFailed,
 } from '@services/auth/auth-slice';
 import { createTestStorage } from '@services/auth/auth-test-utils';
+import { saveTokens } from '@services/auth/token-storage';
 import { createTestStore } from '@services/store-test-utils';
-import { profileOrders } from '@utils/profile-orders-data';
 
 const user = { name: 'Тест', email: 'test@example.test' };
 
@@ -51,12 +53,7 @@ describe('история заказов и защищённые детали', (
                       children: [
                         {
                           path: ':id',
-                          element: (
-                            <OrderInfoModalRoute
-                              orders={profileOrders}
-                              notFoundMessage="Выберите другой заказ в истории."
-                            />
-                          ),
+                          element: <OrderInfoModalRoute />,
                         },
                       ],
                     },
@@ -121,6 +118,8 @@ describe('история заказов и защищённые детали', (
     vi.spyOn(HTMLElement.prototype, 'getClientRects').mockReturnValue([
       new DOMRect(0, 0, 10, 10),
     ] as unknown as DOMRectList);
+    installOrderTransport(personalSnapshot);
+    saveTokens({ accessToken: 'Bearer test', refreshToken: 'refresh' });
     store = createTestStore();
     store.dispatch(sessionEstablished(user));
   });
@@ -150,10 +149,10 @@ describe('история заказов и защищённые детали', (
       'page'
     );
     expect(
-      within(screen.getByRole('list', { name: 'Заказы пользователя' })).getAllByRole(
-        'listitem'
-      )
-    ).toHaveLength(profileOrders.length);
+      within(
+        await screen.findByRole('list', { name: 'Заказы пользователя' })
+      ).getAllByRole('listitem')
+    ).toHaveLength(personalSnapshot.orders.length);
     expect(
       screen.getByText('В этом разделе вы можете просмотреть свою историю заказов')
     ).toBeInTheDocument();
@@ -164,12 +163,14 @@ describe('история заказов и защищённые детали', (
 
   it('открывает карточку с Enter, удерживает фокус и возвращает его после Escape', async () => {
     mount();
-    const card = screen.getByRole('link', { name: /Заказ #034533/ });
+    const card = await screen.findByRole('link', { name: /Заказ #034530/ });
     card.focus();
     await userEvent.keyboard('{Enter}');
     const dialog = await screen.findByRole('dialog', { name: 'Информация о заказе' });
-    expect(router.state.location.pathname).toBe('/profile/orders/34533');
-    expect(within(dialog).getByText('510')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe(
+      '/profile/orders/100000000000000000000003'
+    );
+    expect(await within(dialog).findByText('250')).toBeInTheDocument();
     expect(document.getElementById('root')?.inert).toBe(true);
     const close = within(dialog).getByRole('button', { name: 'Закрыть окно' });
     expect(close).toHaveFocus();
@@ -187,7 +188,7 @@ describe('история заказов и защищённые детали', (
     expect(document.body.style.overflow).toBe('');
   });
 
-  it.each(['34534', 'unknown-order'])(
+  it.each(['100000000000000000000002', 'unknown-order'])(
     'закрывает прямой адрес %s заменой на историю',
     async (id) => {
       mount(`/profile/orders/${id}`);
@@ -195,8 +196,10 @@ describe('история заказов и защищённые детали', (
         name: id === 'unknown-order' ? 'Заказ не найден' : 'Информация о заказе',
       });
       expect(
-        within(dialog).getByText(
-          id === 'unknown-order' ? 'Выберите другой заказ в истории.' : 'Готовится'
+        await within(dialog).findByText(
+          id === 'unknown-order'
+            ? 'Проверьте ссылку или выберите другой заказ.'
+            : 'Готовится'
         )
       ).toBeInTheDocument();
       await userEvent.click(
@@ -215,13 +218,13 @@ describe('история заказов и защищённые детали', (
 
   it('согласовывает Back/Forward и смену заказа, очищает окно при уходе', async () => {
     mount();
-    await userEvent.click(screen.getByRole('link', { name: /Заказ #034533/ }));
+    await userEvent.click(await screen.findByRole('link', { name: /Заказ #034530/ }));
     await screen.findByRole('dialog');
     await act(() => router.navigate(-1));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     await act(() => router.navigate(1));
-    expect(within(screen.getByRole('dialog')).getByText('#034533')).toBeInTheDocument();
-    await act(() => router.navigate('/profile/orders/34534'));
+    expect(within(screen.getByRole('dialog')).getByText('#034530')).toBeInTheDocument();
+    await act(() => router.navigate('/profile/orders/100000000000000000000002'));
     expect(within(screen.getByRole('dialog')).getByText('#034534')).toBeInTheDocument();
     expect(
       within(screen.getByRole('dialog')).getByText('Готовится')
@@ -234,7 +237,7 @@ describe('история заказов и защищённые детали', (
 
   it('ожидает сессию, показывает ошибку и открывает заказ только после подтверждения', async () => {
     store.dispatch(checkingSession());
-    mount('/profile/orders/34533');
+    mount('/profile/orders/100000000000000000000003');
     expect(screen.getByText('Проверяем сессию…')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(
@@ -246,7 +249,9 @@ describe('история заказов и защищённые детали', (
     expect(
       screen.getByRole('button', { name: 'Повторить проверку' })
     ).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/profile/orders/34533');
+    expect(router.state.location.pathname).toBe(
+      '/profile/orders/100000000000000000000003'
+    );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     act(() => {
       store.dispatch(sessionEstablished(user));
@@ -256,7 +261,7 @@ describe('история заказов и защищённые детали', (
 
   it('возвращает гостя после входа к деталям с query и hash', async () => {
     store.dispatch(sessionEnded());
-    mount('/profile/orders/34533?view=recent#details');
+    mount('/profile/orders/100000000000000000000003?view=recent#details');
     await screen.findByRole('heading', { name: 'Вход' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(
@@ -267,12 +272,14 @@ describe('история заказов и защищённые детали', (
     await userEvent.click(screen.getByRole('button', { name: 'Войти' }));
     await screen.findByRole('dialog', { name: 'Информация о заказе' });
     const { pathname, search, hash } = router.state.location;
-    expect(pathname + search + hash).toBe('/profile/orders/34533?view=recent#details');
+    expect(pathname + search + hash).toBe(
+      '/profile/orders/100000000000000000000003?view=recent#details'
+    );
     expect(router.state.historyAction).toBe('REPLACE');
   });
 
   it('при завершении сессии удаляет окно и разблокирует страницу входа', async () => {
-    mount('/profile/orders/34533');
+    mount('/profile/orders/100000000000000000000003');
     await screen.findByRole('dialog');
     act(() => {
       store.dispatch(sessionEnded());

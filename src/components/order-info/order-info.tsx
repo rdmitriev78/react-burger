@@ -5,18 +5,17 @@ import {
 
 import { IngredientPreview } from '@components/ingredient-preview/ingredient-preview';
 import { OrderStatus } from '@components/order-status/order-status';
-import { getOrderSummary } from '@utils/order';
 
-import type { TOrder } from '@app-types/order';
+import type { TOrderView } from '@app-types/order';
 
 import styles from './order-info.module.css';
 
 type TOrderInfoProps = {
-  order: TOrder;
+  order: TOrderView;
 };
 
 export const OrderInfo = ({ order }: TOrderInfoProps): React.JSX.Element => {
-  const { items, total } = getOrderSummary(order);
+  const { items, total } = order.summary;
   return (
     <div className="mt-5">
       <h3 className="text text_type_main-medium">{order.name}</h3>
