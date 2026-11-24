@@ -18,6 +18,7 @@ type TModalProps = {
   onClose: () => void;
   canClose?: boolean;
   getFallbackFocus?: () => HTMLElement | null;
+  titleClassName?: string;
 } & TModalTitleOrAriaLabel;
 
 export const Modal = ({
@@ -27,6 +28,7 @@ export const Modal = ({
   onClose,
   canClose = true,
   getFallbackFocus,
+  titleClassName = 'text text_type_main-large',
 }: TModalProps): React.JSX.Element => {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -112,6 +114,15 @@ export const Modal = ({
     if (canClose) closeButtonRef.current?.focus();
   }, [canClose]);
 
+  // Смена содержимого может удалить активную кнопку или список. Восстанавливаем
+  // потерянный фокус после обновления DOM, сохраняя его на оставшихся элементах.
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.contains(document.activeElement)) {
+      (closeButtonRef.current ?? dialog).focus({ preventScroll: true });
+    }
+  });
+
   // Обновляем обработчик Escape при смене onClose, не сбрасывая фокус и блокировку фона.
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent): void => {
@@ -148,7 +159,7 @@ export const Modal = ({
         className={styles.modal}
         role="dialog"
         aria-label={hasAriaLabel ? ariaLabel : undefined}
-        aria-labelledby={hasTitle ? titleId : undefined}
+        aria-labelledby={hasTitle && !hasAriaLabel ? titleId : undefined}
         aria-modal="true"
         tabIndex={-1}
         onKeyDown={handleTabKeyDown}
@@ -157,7 +168,7 @@ export const Modal = ({
           {(hasTitle || canClose) && (
             <header className={styles.header}>
               {hasTitle && (
-                <h2 id={titleId} className="text text_type_main-large">
+                <h2 id={titleId} className={titleClassName}>
                   {title}
                 </h2>
               )}

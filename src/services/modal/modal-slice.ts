@@ -2,7 +2,11 @@ import { createSlice } from '@reduxjs/toolkit';
 
 import type { TIngredient } from '@app-types/ingredient';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { TErrorModalState, TModalState } from '@services/modal/modal-slice.types';
+import type {
+  TErrorModalState,
+  TModalState,
+  TOrderInfoModal,
+} from '@services/modal/modal-slice.types';
 
 export const modalSlice = createSlice({
   // name задаёт префикс типов actions, например modal/closeModal.
@@ -10,6 +14,14 @@ export const modalSlice = createSlice({
   name: 'modal',
   initialState: (): TModalState => ({ type: 'closed' }),
   reducers: {
+    openOrderInfoModal: (
+      _state,
+      action: PayloadAction<TOrderInfoModal>
+    ): TModalState => ({
+      type: 'order-info',
+      source: 'route',
+      ...action.payload,
+    }),
     openIngredientModal: (_state, action: PayloadAction<TIngredient>): TModalState => ({
       type: 'ingredient',
       source: 'route',
@@ -40,6 +52,7 @@ export const modalSlice = createSlice({
 });
 
 export const {
+  openOrderInfoModal,
   openIngredientModal,
   openOrderModal,
   openErrorModal,

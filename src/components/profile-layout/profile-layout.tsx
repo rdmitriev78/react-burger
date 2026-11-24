@@ -9,6 +9,7 @@ import styles from './profile-layout.module.css';
 
 export const ProfileLayout = (): React.JSX.Element => {
   const isProfilePage = useMatch('/profile') !== null;
+  const isHistoryPage = useMatch('/profile/orders/*') !== null;
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { isLoggingOut } = useAppSelector(selectAuth);
@@ -23,7 +24,7 @@ export const ProfileLayout = (): React.JSX.Element => {
   };
 
   return (
-    <main className={styles.main}>
+    <main className={`${styles.main} ${isHistoryPage ? styles.main_history : ''}`}>
       <aside className={styles.sidebar}>
         <nav aria-label="Меню профиля" className={styles.menu}>
           <NavLink

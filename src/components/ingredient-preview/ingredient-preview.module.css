@@ -1,0 +1,31 @@
+.preview {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  background:
+    linear-gradient(#131316, #131316) padding-box,
+    linear-gradient(63deg, #801ab2, #4c4cff) border-box;
+  border: 2px solid transparent;
+  border-radius: 50%;
+}
+
+.preview img {
+  width: 112px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.counter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgb(28 28 33 / 60%);
+}

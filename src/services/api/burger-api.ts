@@ -1,11 +1,14 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import { isAuthResponse, isObject, isUserResponse } from '@services/auth/auth.types';
+import { initialOrderStream, parseOrderResponse } from '@services/orders/order-data';
+import { runOrderStream } from '@services/orders/order-stream';
 import { isPasswordRecoveryResponse } from '@services/password-recovery/password-recovery.types';
 
 import { baseQueryWithReauth } from './base-query-with-reauth';
 
 import type { TIngredient } from '@app-types/ingredient';
+import type { TOrder, TOrderScope, TOrderStream } from '@app-types/order';
 import type {
   TAuthResponse,
   TCredentials,
@@ -54,8 +57,38 @@ const isCreateOrderResponseValid = (body: unknown): body is TCreateOrderResponse
 
 export const burgerApi = createApi({
   reducerPath: 'burgerApi',
+  // HTTP-запросы получают access-токен и refresh только при явном auth: true.
   baseQuery: baseQueryWithReauth,
   endpoints: (builder) => ({
+    // Потоки начинаются без HTTP: queryFn создаёт состояние, onCacheEntryAdded запускает WS.
+    // keepUnusedDataFor: 0 удаляет кеш и завершает поток после ухода последнего подписчика.
+    getOrderFeed: builder.query<TOrderStream, void>({
+      queryFn: () => ({ data: initialOrderStream() }),
+      keepUnusedDataFor: 0,
+      onCacheEntryAdded: (_arg, api) => runOrderStream({ kind: 'feed' }, api),
+    }),
+    // Поколение сессии разделяет персональные кеши; токен читается внутри runOrderStream.
+    getUserOrders: builder.query<TOrderStream, number>({
+      queryFn: () => ({ data: initialOrderStream() }),
+      keepUnusedDataFor: 0,
+      onCacheEntryAdded: (version, api) =>
+        runOrderStream({ kind: 'user', version }, api),
+    }),
+    // GET деталей публичный; scope разделяет кеш по ленте/сессии, в URL передаётся только id.
+    getOrder: builder.query<TOrder, { id: string; scope: TOrderScope }>({
+      extraOptions: { auth: false },
+      keepUnusedDataFor: 0,
+      queryFn: async ({ id }, _api, _options, baseQuery) => {
+        const response = await baseQuery(`orders/${id}`);
+        if (response.error) return { error: response.error };
+        const order = parseOrderResponse(response.data, id);
+        return order
+          ? { data: order }
+          : {
+              error: { status: 'CUSTOM_ERROR', error: 'Некорректные данные заказа' },
+            };
+      },
+    }),
     requestPasswordReset: builder.mutation<
       TPasswordRecoveryResponse,
       TPasswordResetEmailRequest
@@ -156,6 +189,9 @@ export const burgerApi = createApi({
 });
 
 export const {
+  useGetOrderFeedQuery,
+  useGetUserOrdersQuery,
+  useGetOrderQuery,
   useGetIngredientsQuery,
   useLoginMutation,
   useRegisterMutation,

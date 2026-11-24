@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 
 import { App } from '@components/app/app';
 import { IngredientModalRoute } from '@components/ingredient-modal-route/ingredient-modal-route';
+import { OrderInfoModalRoute } from '@components/order-info-modal-route/order-info-modal-route';
 import { ProtectedRoute } from '@components/protected-route/protected-route';
 import { RequestLoading } from '@components/request-loading/request-loading';
 import { RouteError } from '@pages/route-error/route-error';
@@ -56,6 +57,12 @@ export const router = createBrowserRouter([
                   Component: (await import('@pages/profile-order/profile-order'))
                     .ProfileOrderPage,
                 }),
+                children: [
+                  {
+                    path: ':id',
+                    element: <OrderInfoModalRoute />,
+                  },
+                ],
               },
             ],
           },
@@ -66,6 +73,12 @@ export const router = createBrowserRouter([
         lazy: async (): Promise<TRouteModule> => ({
           Component: (await import('@pages/feed/feed')).FeedPage,
         }),
+        children: [
+          {
+            path: ':id',
+            element: <OrderInfoModalRoute />,
+          },
+        ],
       },
       {
         element: <ProtectedRoute onlyGuest />,

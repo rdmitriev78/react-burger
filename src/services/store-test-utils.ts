@@ -1,4 +1,4 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, createListenerMiddleware } from '@reduxjs/toolkit';
 
 import { burgerApi } from './api/burger-api';
 import { rootReducer } from './store';
@@ -10,5 +10,7 @@ export const createTestStore = (): AppStore =>
   configureStore({
     reducer: rootReducer,
     middleware: (getDefaultMiddleware) =>
-      getDefaultMiddleware().concat(burgerApi.middleware),
+      getDefaultMiddleware()
+        .prepend(createListenerMiddleware().middleware)
+        .concat(burgerApi.middleware),
   });

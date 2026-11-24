@@ -16,6 +16,7 @@ export const App = (): React.JSX.Element => {
     void dispatch(checkSession());
   }, [dispatch]);
   const constructorLinkRef = useRef<HTMLAnchorElement>(null);
+  const feedLinkRef = useRef<HTMLAnchorElement>(null);
 
   // Отменяем ожидание только при размонтировании приложения, а не отдельных потребителей хука.
   // OrderSubmission размонтируется при смене статуса, поэтому cleanup запроса не хранится в нём.
@@ -23,9 +24,12 @@ export const App = (): React.JSX.Element => {
 
   return (
     <div className={styles.app}>
-      <AppHeader constructorLinkRef={constructorLinkRef} />
+      <AppHeader constructorLinkRef={constructorLinkRef} feedLinkRef={feedLinkRef} />
       <Outlet />
-      <AppModals ingredientFallbackFocusRef={constructorLinkRef} />
+      <AppModals
+        ingredientFallbackFocusRef={constructorLinkRef}
+        feedFallbackFocusRef={feedLinkRef}
+      />
     </div>
   );
 };

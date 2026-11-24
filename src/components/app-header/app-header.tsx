@@ -12,10 +12,12 @@ import styles from './app-header.module.css';
 
 type TAppHeaderProps = {
   constructorLinkRef?: Ref<HTMLAnchorElement>;
+  feedLinkRef?: Ref<HTMLAnchorElement>;
 };
 
 export const AppHeader = ({
   constructorLinkRef,
+  feedLinkRef,
 }: TAppHeaderProps): React.JSX.Element => {
   const isHomeRoute = useMatch('/') !== null;
   const isIngredientRoute = useMatch('/ingredients/:id') !== null;
@@ -34,6 +36,7 @@ export const AppHeader = ({
             <p className="text text_type_main-default ml-2">Конструктор</p>
           </Link>
           <NavLink
+            ref={feedLinkRef}
             to="/feed"
             className={({ isActive }) =>
               `${styles.link} ml-10 ${isActive ? styles.link_active : ''}`
