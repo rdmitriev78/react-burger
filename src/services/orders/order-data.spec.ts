@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createOrderCatalog,
+  isOrderId,
+  normalizeOrderId,
   parseOrder,
   parseOrderResponse,
   parseOrderSnapshot,
@@ -12,6 +14,48 @@ import {
 } from './order-data';
 
 describe('серверные заказы', () => {
+  const id = 'abcdef0123456789abcdef01';
+
+  it.each([id, id.toUpperCase(), 'AbCdEf0123456789aBcDeF01'])(
+    'нормализует ID корректных и отклонённых записей %s',
+    (serverId) => {
+      expect(parseOrder({ ...createdOrder, _id: serverId })?.id).toBe(id);
+      expect(
+        parseOrderSnapshot({
+          ...publicSnapshot,
+          orders: [{ ...createdOrder, _id: serverId, status: 'wrong' }],
+        })?.invalidOrderIds
+      ).toEqual([id]);
+    }
+  );
+
+  it.each([
+    [id.toUpperCase(), id],
+    [id, id.toUpperCase()],
+    ['AbCdEf0123456789aBcDeF01', 'aBcDeF0123456789AbCdEf01'],
+  ])('сопоставляет GET %s с ответом %s', (requestedId, serverId) => {
+    expect(
+      parseOrderResponse(
+        { success: true, order: { ...createdOrder, _id: serverId } },
+        requestedId
+      )?.id
+    ).toBe(id);
+    expect(
+      parseOrderResponse(
+        { success: true, order: { ...createdOrder, _id: id.replace(/1$/, '2') } },
+        requestedId
+      )
+    ).toBeUndefined();
+  });
+
+  it.each(['ABC', 'G'.repeat(24), 'A'.repeat(23), 'A'.repeat(25), ` ${id}`])(
+    'не делает неправильный ID допустимым: %s',
+    (invalidId) => {
+      expect(normalizeOrderId(invalidId)).toBe(invalidId);
+      expect(isOrderId(normalizeOrderId(invalidId))).toBe(false);
+    }
+  );
+
   it('отбрасывает повреждённые элементы отдельно, сохраняя счётчики и порядок', () => {
     const result = parseOrderSnapshot({
       ...publicSnapshot,

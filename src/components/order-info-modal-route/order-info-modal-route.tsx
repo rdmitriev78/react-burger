@@ -4,13 +4,15 @@ import { useOutletContext, useParams } from 'react-router-dom';
 import { useAppDispatch } from '@hooks/redux';
 import { useGetOrderQuery } from '@services/api/burger-api';
 import { closeRouteModal, openOrderInfoModal } from '@services/modal/modal-slice';
-import { isOrderId, prepareOrder } from '@services/orders/order-data';
+import { isOrderId, normalizeOrderId, prepareOrder } from '@services/orders/order-data';
 
 import type { TOrderStreamContext } from '@hooks/use-order-stream';
 import type { TOrderInfoView } from '@services/modal/modal-slice.types';
 
 export const OrderInfoModalRoute = (): null => {
-  const { id = '' } = useParams<{ id: string }>();
+  const { id: routeId = '' } = useParams<{ id: string }>();
+  // Один аргумент для поиска, кеша и повтора; сам URL сохраняется без перехода.
+  const id = normalizeOrderId(routeId);
   const context = useOutletContext<TOrderStreamContext>();
   const dispatch = useAppDispatch();
   const { scope, stream, catalog, catalogStatus } = context;

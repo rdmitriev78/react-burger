@@ -114,6 +114,15 @@ export const Modal = ({
     if (canClose) closeButtonRef.current?.focus();
   }, [canClose]);
 
+  // Смена содержимого может удалить активную кнопку или список. Восстанавливаем
+  // потерянный фокус после обновления DOM, сохраняя его на оставшихся элементах.
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.contains(document.activeElement)) {
+      (closeButtonRef.current ?? dialog).focus({ preventScroll: true });
+    }
+  });
+
   // Обновляем обработчик Escape при смене onClose, не сбрасывая фокус и блокировку фона.
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent): void => {

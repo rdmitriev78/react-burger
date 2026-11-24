@@ -18,6 +18,10 @@ const count = (value: unknown): value is number =>
 
 export const isOrderId = (id: string): boolean => /^[a-f\d]{24}$/i.test(id);
 
+// ObjectId не зависит от регистра. Нормализация не расширяет допустимый формат.
+export const normalizeOrderId = (id: string): string =>
+  isOrderId(id) ? id.toLowerCase() : id;
+
 // Проверяем внешние данные и приводим заказ к модели интерфейса; пустое имя заменяем на «Бургер».
 export const parseOrder = (value: unknown): TOrder | undefined => {
   if (
@@ -37,7 +41,7 @@ export const parseOrder = (value: unknown): TOrder | undefined => {
     return undefined;
 
   return {
-    id: value._id,
+    id: normalizeOrderId(value._id),
     number: value.number,
     name: typeof value.name === 'string' && value.name.trim() ? value.name : 'Бургер',
     status: value.status,
@@ -64,7 +68,7 @@ export const parseOrderSnapshot = (value: unknown): TOrderSnapshot | undefined =
     const order = parseOrder(candidate);
     if (order) orders.push(order);
     else if (isObject(candidate) && nonEmpty(candidate._id))
-      invalidOrderIds.push(candidate._id);
+      invalidOrderIds.push(normalizeOrderId(candidate._id));
   }
   return { orders, invalidOrderIds, total: value.total, totalToday: value.totalToday };
 };
@@ -73,7 +77,7 @@ export const parseOrderSnapshot = (value: unknown): TOrderSnapshot | undefined =
 export const parseOrderResponse = (value: unknown, id: string): TOrder | undefined => {
   if (!isObject(value) || value.success !== true) return undefined;
   const order = parseOrder(value.order);
-  return order?.id === id ? order : undefined;
+  return order?.id === normalizeOrderId(id) ? order : undefined;
 };
 
 // Индексируем по ID ингредиенты с пригодными для состава полями и ценой.
